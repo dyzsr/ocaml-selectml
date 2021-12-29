@@ -165,6 +165,7 @@ type error =
   | Missing_type_constraint
   | Wrong_expected_kind of wrong_kind_sort * wrong_kind_context * type_expr
   | Expr_not_a_record_type of type_expr
+  | Invalid_use_of_aggregate
 
 exception Error of Location.t * Env.t * error
 exception Error_forward of Location.error
@@ -199,6 +200,14 @@ let type_object =
   ref (fun _env _s -> assert false :
        Env.t -> Location.t -> Parsetree.class_structure ->
          Typedtree.class_structure * string list)
+
+(* Forward declaration, to be filled in by Typeplan.type_select *)
+let type_select =
+  ref (fun ?in_function:_ ~loc:_ _env _se _expected -> assert false)
+
+(* Forward declaration, to be filled in by Typeplan.type_aggregate *)
+let type_aggregate =
+  ref (fun ?in_function:_ _env _sfunct _sarg -> assert false)
 
 (*
   Saving and outputting type information.
@@ -2346,6 +2355,7 @@ let rec is_nonexpansive exp =
      is_nonexpansive e
   | Texp_array (_ :: _)
   | Texp_apply _
+  | Texp_aggregate _
   | Texp_try _
   | Texp_setfield _
   | Texp_while _
@@ -2358,6 +2368,31 @@ let rec is_nonexpansive exp =
   | Texp_letop _
   | Texp_extension_constructor _ ->
     false
+  | Texp_plan (_, p) -> is_nonexpansive_plan p
+
+and is_nonexpansive_plan plan =
+  match plan.plan_desc with
+  | Tplan_null -> true
+  | Tplan_source e -> is_nonexpansive e
+  | Tplan_product (p1, p2) -> is_nonexpansive_plan p1 && is_nonexpansive_plan p2
+  | Tplan_filter (p, e) -> is_nonexpansive_plan p && is_nonexpansive e
+  | Tplan_project (p, es) ->
+      is_nonexpansive_plan p && List.for_all is_nonexpansive es
+  | Tplan_sort (p, es, ds) ->
+      is_nonexpansive_plan p &&
+      List.for_all is_nonexpansive es &&
+      List.for_all (function
+        | TAscending | TDescending -> true
+        | TUsing e -> is_nonexpansive e) ds
+  | Tplan_unique p -> is_nonexpansive_plan p
+  | Tplan_aggregate_all (p, fs, es) ->
+      is_nonexpansive_plan p &&
+      List.for_all is_nonexpansive_opt fs &&
+      List.for_all is_nonexpansive es
+  | Tplan_aggregate (p, e, fs, es) ->
+      is_nonexpansive_plan p && is_nonexpansive e &&
+      List.for_all is_nonexpansive_opt fs &&
+      List.for_all is_nonexpansive es
 
 and is_nonexpansive_mod mexp =
   match mexp.mod_desc with
@@ -2607,10 +2642,17 @@ let check_partial_application ~statement exp =
             | Texp_let (_, _, e) | Texp_sequence (_, e) | Texp_open (_, e)
             | Texp_letexception (_, e) | Texp_letmodule (_, _, _, _, e) ->
                 check e
+            | Texp_aggregate _
             | Texp_apply _ | Texp_send _ | Texp_new _ | Texp_letop _ ->
                 Location.prerr_warning exp_loc
                   Warnings.Ignored_partial_application
+            | Texp_plan (_, p) -> check_plan p
           end
+        and check_plan {plan_desc; plan_cardinality; _} =
+          match plan_desc with
+          | Tplan_project (_, [e]) when plan_cardinality = One -> check e
+          | Tplan_filter (p, _) | Tplan_sort (p, _, _) -> check_plan p
+          | _ -> check_statement ()
         in
         check exp
     | _ ->
@@ -3970,6 +4012,24 @@ and type_expect_
       end
   | Pexp_extension ext ->
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
+
+  | Pexp_select se ->
+      let exp, plan =
+        !type_select ?in_function ~loc env se ty_expected_explained in
+      re { exp_desc = Texp_plan (exp, plan);
+           exp_loc = loc; exp_extra = [];
+           exp_type = exp.exp_type;
+           exp_attributes = sexp.pexp_attributes;
+           exp_env = env }
+
+  | Pexp_aggregate (sfunct, sarg) ->
+      let funct, arg, ty_ret =
+        !type_aggregate ?in_function env sfunct sarg in
+      re { exp_desc = Texp_aggregate (funct, arg);
+           exp_loc = loc; exp_extra = [];
+           exp_type = ty_ret;
+           exp_attributes = sexp.pexp_attributes;
+           exp_env = env }
 
   | Pexp_unreachable ->
       re { exp_desc = Texp_unreachable;
@@ -5907,6 +5967,8 @@ let report_error ~loc env = function
         "This expression has type %a@ \
          which is not a record type."
         Printtyp.type_expr ty
+  | Invalid_use_of_aggregate ->
+      Location.errorf ~loc "Invalid use of aggregate functions."
 
 let report_error ~loc env err =
   Printtyp.wrap_printing_env ~error:true env

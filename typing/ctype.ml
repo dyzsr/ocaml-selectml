@@ -183,6 +183,11 @@ let create_scope () =
   init_def (!current_level + 1);
   !current_level
 
+let se_scope_stack = Stack.create ()
+let se_scopes () = Stack.to_seq se_scope_stack |> List.of_seq
+let begin_se_scope scope = Stack.push scope se_scope_stack
+let end_se_scope () = ignore (Stack.pop se_scope_stack)
+
 let reset_global_level () =
   global_level := !current_level + 1
 let increase_global_level () =

@@ -17,7 +17,7 @@ module type S = sig type t val x : t end
 module Falias (X : S) = X
 [%%expect{|
 {
- "Falias"[module] -> Abs<.4>(X/279, X/279<.3>);
+ "Falias"[module] -> Abs<.4>(X/291, X/291<.3>);
  }
 module Falias : functor (X : S) -> sig type t = X.t val x : t end
 |}]
@@ -29,10 +29,10 @@ end
 {
  "Finclude"[module] ->
      Abs<.6>
-        (X/283,
+        (X/295,
          {
-          "t"[type] -> X/283<.5> . "t"[type];
-          "x"[value] -> X/283<.5> . "x"[value];
+          "t"[type] -> X/295<.5> . "t"[type];
+          "x"[value] -> X/295<.5> . "x"[value];
           });
  }
 module Finclude : functor (X : S) -> sig type t = X.t val x : t end
@@ -45,7 +45,7 @@ end
 [%%expect{|
 {
  "Fredef"[module] ->
-     Abs<.10>(X/290, {
+     Abs<.10>(X/302, {
                       "t"[type] -> <.8>;
                       "x"[value] -> <.9>;
                       });
@@ -223,8 +223,8 @@ module Big_to_small1 : B2S = functor (X : Big) -> X
 [%%expect{|
 {
  "Big_to_small1"[module] ->
-     Abs<.40>(X/385, {<.39>
-                      "t"[type] -> X/385<.39> . "t"[type];
+     Abs<.40>(X/397, {<.39>
+                      "t"[type] -> X/397<.39> . "t"[type];
                       });
  }
 module Big_to_small1 : B2S
@@ -234,8 +234,8 @@ module Big_to_small2 : B2S = functor (X : Big) -> struct include X end
 [%%expect{|
 {
  "Big_to_small2"[module] ->
-     Abs<.42>(X/388, {
-                      "t"[type] -> X/388<.41> . "t"[type];
+     Abs<.42>(X/400, {
+                      "t"[type] -> X/400<.41> . "t"[type];
                       });
  }
 module Big_to_small2 : B2S

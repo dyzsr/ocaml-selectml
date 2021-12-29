@@ -576,6 +576,57 @@ external naked_pointers_checked : unit -> bool
   = "caml_sys_const_naked_pointers_checked"
 let () = if naked_pointers_checked () then at_exit major
 
+(* Aggregate functions *)
+
+type ('a, 'b, 'c) aggfunc = 'c * ('c -> 'a -> 'c) * ('c -> 'b)
+
+type (_, _) agg = Agg : ('a, 'b, 'c) aggfunc -> ('a, 'b) agg
+
+let firstrow = Agg (None,
+  (function None -> fun x -> Some x | x -> fun _ -> x),
+  (function None -> failwith "firstrow" | Some x -> x))
+
+let agg_min = Agg (None,
+  (fun x y -> match x with Some x -> Some (min x y) | _ -> Some y),
+  (function None -> failwith "agg_min" | Some x -> x))
+
+let agg_max = Agg (None,
+  (fun x y -> match x with Some x -> Some (max x y) | _ -> Some y),
+  (function None -> failwith "agg_max" | Some x -> x))
+
+let count = Agg (0, (fun acc _ -> acc + 1), (fun x -> x))
+
+let sum = Agg (0, (+), (fun x -> x))
+
+let avg = Agg ((0, 0),
+  (fun (c, s) x -> c + 1, s + x),
+  (fun (c, s) -> s / c))
+
+let fsum = Agg (0., (+.), (fun x -> x))
+
+let favg = Agg ((0, 0.),
+  (fun (c, s) x -> c + 1, s +. x),
+  (fun (c, s) -> s /. float_of_int c))
+
+(** SelectML Module Signature *)
+module type SelectMLType = sig
+  type 'a src
+  type 'a t
+
+  val input : 'a src -> 'a t
+  val output : 'a t -> 'a src
+
+  val one : 'a t -> 'a
+  val singleton : 'a -> 'a t
+  val product : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  val map : ('a -> 'b) -> 'a t -> 'b t
+  val filter : ('a -> bool) -> 'a t -> 'a t
+  val sort : ('a -> 'a -> int) -> 'a t -> 'a t
+  val unique : 'a t -> 'a t
+  val group_all : ('a, 'b) agg -> 'a t -> 'b
+  val group : ('a -> 'c) -> ('a, 'b) agg -> 'a t -> 'b t
+end
+
 (*MODULE_ALIASES*)
 module Arg          = Arg
 module Array        = Array
@@ -623,6 +674,7 @@ module Queue        = Queue
 module Random       = Random
 module Result       = Result
 module Scanf        = Scanf
+module SelectML     = SelectML
 module Seq          = Seq
 module Set          = Set
 module Stack        = Stack

@@ -397,8 +397,57 @@ and expression i ppf x =
   | Pexp_extension (s, arg) ->
       line i ppf "Pexp_extension \"%s\"\n" s.txt;
       payload i ppf arg
+  | Pexp_select se ->
+      line i ppf "Pexp_select\n";
+      select_expr i ppf se
+  | Pexp_aggregate (e1, e2) ->
+      line i ppf "Pexp_aggregate\n";
+      expression i ppf e1;
+      expression i ppf e2
   | Pexp_unreachable ->
       line i ppf "Pexp_unreachable"
+
+and select_expr i ppf se =
+  if se.se_distinct.txt then
+    line i ppf "SELECT DISTINCT\n"
+  else
+    line i ppf "SELECT\n";
+  expression (i+1) ppf se.se_select;
+  option i (fun i ppf x -> line i ppf "FROM\n"; source_expr (i+1) ppf x)
+    ppf se.se_from;
+  option i (fun i ppf x -> line i ppf "WHERE\n"; expression (i+1) ppf x)
+    ppf se.se_where;
+  option i (fun i ppf x -> line i ppf "GROUP BY\n"; expression (i+1) ppf x)
+    ppf se.se_groupby;
+  option i (fun i ppf x -> line i ppf "HAVING\n"; expression (i+1) ppf x)
+    ppf se.se_having;
+  if List.length se.se_orderby > 0 then
+    line i ppf "ORDER BY\n";
+    let i = i+1 in
+    List.iter
+      (fun (e, o) ->
+        expression i ppf e;
+        match o with
+        | PAscending -> line i ppf "ASCENDING\n"
+        | PDescending -> line i ppf "DESCENDING\n"
+        | PUsing e -> line i ppf "USING\n"; expression (i+1) ppf e)
+      se.se_orderby
+
+and source_expr i ppf x =
+  line i ppf "source_expr %a\n" fmt_location x.psrc_loc;
+  let i = i+1 in
+  match x.psrc_desc with
+  | Psrc_exp (e, [s]) ->
+      line i ppf "Psrc_exp %a\n" fmt_string_loc s;
+      expression i ppf e
+  | Psrc_exp (e, s) ->
+      line i ppf "Psrc_exp\n";
+      List.iter (fun s -> line (i+1) ppf "%a\n" fmt_string_loc s) s;
+      expression i ppf e
+  | Psrc_join (s1, s2) ->
+      line i ppf "Psrc_join\n";
+      source_expr i ppf s1;
+      source_expr i ppf s2
 
 and value_description i ppf x =
   line i ppf "value_description %a %a\n" fmt_string_loc

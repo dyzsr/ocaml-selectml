@@ -416,6 +416,43 @@ and expression_desc =
             - [let* P0 = E00 and* P1 = E01 in E1] *)
   | Pexp_extension of extension  (** [[%id]] *)
   | Pexp_unreachable  (** [.] *)
+  | Pexp_select of select_expr
+        (* SELECT ... FROM ... WHERE ...
+           GROUP BY ... HAVING ... ORDER BY ... *)
+  | Pexp_aggregate of expression * expression
+        (* SELECT {count (x, y)} ...
+           SELECT x, {sum y}, {avg z} ...
+           SELECT ... HAVING {count x} > 0 ...
+           SELECT ... ORDER BY {count x}
+
+           Invariant: usage outside SELECT context is not allowed *)
+
+and select_expr =
+  {
+    se_select : expression;
+    se_distinct : bool loc;
+    se_from : source_expr option;
+    se_where : expression option;
+    se_groupby : expression option;
+    se_having : expression option;
+    se_orderby : (expression * order_direction) list;
+    se_orderby_loc : Location.t
+  }
+
+and source_expr =
+  {
+    psrc_desc : source_expr_desc;
+    psrc_loc : Location.t
+  }
+
+and source_expr_desc =
+  | Psrc_exp of expression * string loc list
+  | Psrc_join of source_expr * source_expr
+
+and order_direction =
+  | PAscending
+  | PDescending
+  | PUsing of expression
 
 and case =
     {

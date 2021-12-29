@@ -54,6 +54,11 @@ val set_levels: levels -> unit
 
 val create_scope : unit -> int
 
+val se_scopes : unit -> int list
+        (* Get current SELECT expression scopes *)
+val begin_se_scope : int -> unit
+val end_se_scope : unit -> unit
+
 val newty: type_desc -> type_expr
 val new_scoped_ty: int -> type_desc -> type_expr
 val newvar: ?name:string -> unit -> type_expr

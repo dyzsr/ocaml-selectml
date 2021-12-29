@@ -45,6 +45,7 @@ type iterator =
     module_type_declaration: iterator -> module_type_declaration -> unit;
     package_type: iterator -> package_type -> unit;
     pat: 'k . iterator -> 'k general_pattern -> unit;
+    plan: iterator -> plan -> unit;
     row_field: iterator -> row_field -> unit;
     object_field: iterator -> object_field -> unit;
     open_declaration: iterator -> open_declaration -> unit;

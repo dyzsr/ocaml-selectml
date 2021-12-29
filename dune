@@ -61,7 +61,7 @@
    tast_iterator tast_mapper signature_group cmt_format untypeast
    includemod includemod_errorprinter
    typetexp patterns printpat parmatch stypes typedecl typeopt rec_check
-   typecore
+   typecore typeplan
    typeclass typemod typedecl_variance typedecl_properties typedecl_immediacy
    typedecl_unboxed typedecl_separability cmt2annot
    ; manual update: mli only files

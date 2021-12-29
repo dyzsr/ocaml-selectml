@@ -269,7 +269,24 @@ let rec add_expr bv exp =
       | _ -> handle_extension e
       end
   | Pexp_extension e -> handle_extension e
+  | Pexp_select se ->
+      add_expr bv se.se_select;
+      add_opt add_srcexpr bv se.se_from;
+      add_opt add_expr bv se.se_where;
+      add_opt add_expr bv se.se_groupby;
+      add_opt add_expr bv se.se_having;
+      List.iter
+        (fun (e, o) ->
+          add_expr bv e;
+          match o with PUsing e -> add_expr bv e | _ -> ())
+        se.se_orderby
+  | Pexp_aggregate (e1, e2) -> add_expr bv e1; add_expr bv e2
   | Pexp_unreachable -> ()
+
+and add_srcexpr bv src =
+  match src.psrc_desc with
+  | Psrc_exp (e, _) -> add_expr bv e
+  | Psrc_join (s1, s2) -> add_srcexpr bv s1; add_srcexpr bv s2
 
 and add_cases bv cases =
   List.iter (add_case bv) cases

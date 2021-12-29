@@ -46,6 +46,7 @@ type mapper =
       mapper -> module_type_declaration -> module_type_declaration;
     package_type: mapper -> package_type -> package_type;
     pat: 'k . mapper -> 'k general_pattern -> 'k general_pattern;
+    plan: mapper -> plan -> plan;
     row_field: mapper -> row_field -> row_field;
     object_field: mapper -> object_field -> object_field;
     open_declaration: mapper -> open_declaration -> open_declaration;

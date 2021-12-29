@@ -304,6 +304,8 @@ and rw_exp iflag sexp =
       List.iter (fun {pbop_exp; _} -> rewrite_exp iflag pbop_exp) ands;
       rewrite_exp iflag body
   | Pexp_extension _ -> ()
+  | Pexp_select _ -> ()
+  | Pexp_aggregate _ -> ()
   | Pexp_unreachable -> ()
 
 and rewrite_ifbody iflag ghost sifbody =

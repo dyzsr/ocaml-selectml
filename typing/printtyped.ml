@@ -450,6 +450,58 @@ and expression i ppf x =
       module_expr i ppf o.open_expr;
       attributes i ppf o.open_attributes;
       expression i ppf e;
+  | Texp_plan (e, p) ->
+      line i ppf "Texp_plan\n";
+      expression i ppf e;
+      plan i ppf p
+  | Texp_aggregate (e1, e2) ->
+      line i ppf "Texp_aggregate\n";
+      expression i ppf e1;
+      expression i ppf e2
+
+and plan i ppf p =
+  line i ppf "plan %a\n" fmt_location p.plan_loc;
+  let i = i + 1 in
+  match p.plan_desc with
+  | Tplan_null -> line i ppf "Tplan_null\n"
+  | Tplan_source e ->
+      line i ppf "Tplan_source\n";
+      expression i ppf e
+  | Tplan_product (p1, p2) ->
+      line i ppf "Tplan_product\n";
+      plan i ppf p1;
+      plan i ppf p2
+  | Tplan_filter (p, e) ->
+      line i ppf "Tplan_filter\n";
+      plan i ppf p;
+      expression i ppf e
+  | Tplan_project (p, es) ->
+      line i ppf "Tplan_project\n";
+      plan i ppf p;
+      list i expression ppf es
+  | Tplan_sort (p, es, ds) ->
+      line i ppf "Tplan_sort\n";
+      plan i ppf p;
+      list i expression ppf es;
+      list i (fun i ppf -> function
+        | TAscending -> line i ppf "Ascending\n"
+        | TDescending -> line i ppf "Descending\n"
+        | TUsing e -> line i ppf "TUsing\n"; expression i ppf e)
+        ppf ds
+  | Tplan_unique p ->
+      line i ppf "Tplan_unique\n";
+      plan i ppf p
+  | Tplan_aggregate_all (p, fs, es) ->
+      line i ppf "Tplan_aggregate_all\n";
+      plan i ppf p;
+      list i (fun i ppf x -> option i expression ppf x) ppf fs;
+      list i expression ppf es
+  | Tplan_aggregate (p, e, fs, es) ->
+      line i ppf "Tplan_aggregate\n";
+      plan i ppf p;
+      expression i ppf e;
+      list i (fun i ppf x -> option i expression ppf x) ppf fs;
+      list i expression ppf es
 
 and value_description i ppf x =
   line i ppf "value_description %a %a\n" fmt_ident x.val_id fmt_location

@@ -26,4 +26,16 @@ Line 2, characters 4-15:
 2 |  [%%missing_rhs]
         ^^^^^^^^^^^
 Error: broken invariant in parsetree: Module type substitution with no right hand side
+Line 2, characters 9-14:
+2 | SELECT [%tuple];;
+             ^^^^^
+Error: broken invariant in parsetree: Tuples must have at least 2 components.
+Line 1, characters 22-27:
+1 | SELECT x FROM t <- ([%tuple]);;
+                          ^^^^^
+Error: broken invariant in parsetree: Tuples must have at least 2 components.
+Line 1, characters 17-22:
+1 | SELECT {count ([%tuple])};;
+                     ^^^^^
+Error: broken invariant in parsetree: Tuples must have at least 2 components.
 

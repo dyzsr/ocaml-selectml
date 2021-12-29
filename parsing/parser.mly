@@ -55,6 +55,7 @@ let mkmod ~loc ?attrs d = Mod.mk ~loc:(make_loc loc) ?attrs d
 let mkstr ~loc d = Str.mk ~loc:(make_loc loc) d
 let mkclass ~loc ?attrs d = Cl.mk ~loc:(make_loc loc) ?attrs d
 let mkcty ~loc ?attrs d = Cty.mk ~loc:(make_loc loc) ?attrs d
+let mksrc ~loc d = Exp.mksrc ~loc:(make_loc loc) d
 
 let pstr_typext (te, ext) =
   (Pstr_typext te, ext)
@@ -763,6 +764,18 @@ let mk_directive ~loc name arg =
 %token <string * Location.t> COMMENT    "(* comment *)"
 %token <Docstrings.docstring> DOCSTRING "(** documentation *)"
 
+%token SELECT_                "SELECT"
+%token FROM_                  "FROM"
+%token WHERE_                 "WHERE"
+%token GROUP_                 "GROUP"
+%token HAVING_                "HAVING"
+%token ORDER_                 "ORDER"
+%token DISTINCT_              "DISTINCT"
+%token BY_                    "BY"
+%token ASC_                   "ASC"
+%token DESC_                  "DESC"
+%token USING_                 "USING"
+
 %token EOL                    "\\n"      (* not great, but EOL is unused *)
 
 /* Precedences and associativities.
@@ -791,6 +804,13 @@ The precedences must be listed from low to high.
 %nonassoc IN
 %nonassoc below_SEMI
 %nonassoc SEMI                          /* below EQUAL ({lbl=...; lbl=...}) */
+%nonassoc SELECT_         /* below FROM_ (SELECT ...) */
+%nonassoc FROM_           /* (SELECT ... FROM ...) */
+%nonassoc WHERE_          /* (SELECT ... WHERE ...) */
+%nonassoc BY_
+%nonassoc GROUP_          /* (SELECT ... GROUP BY ...) */
+%nonassoc HAVING_         /* (SELECT ... HAVING ...) */
+%nonassoc ORDER_          /* (SELECT ... ORDER BY ...) */
 %nonassoc LET                           /* above SEMI ( ...; let ... in ...) */
 %nonassoc below_WITH
 %nonassoc FUNCTION WITH                 /* below BAR  (match ... with ...) */
@@ -803,6 +823,8 @@ The precedences must be listed from low to high.
 %left     BAR                           /* pattern (p|p|p) */
 %nonassoc below_COMMA
 %left     COMMA                         /* expr/expr_comma_list (e,e,e) */
+%nonassoc above_COMMA
+%nonassoc ASC_ DESC_ USING_
 %right    MINUSGREATER                  /* function_type (t -> t -> t) */
 %right    OR BARBAR                     /* expr (e || e || e) */
 %right    AMPERSAND AMPERAMPER          /* expr (e && e && e) */
@@ -938,6 +960,8 @@ The precedences must be listed from low to high.
     { mkcf ~loc:$sloc $1 }
 %inline mkclass(symb): symb
     { mkclass ~loc:$sloc $1 }
+%inline mksrc(symb): symb
+    { mksrc ~loc:$sloc $1 }
 
 %inline wrap_mkstr_ext(symb): symb
     { wrap_mkstr_ext ~loc:$sloc $1 }
@@ -2292,6 +2316,8 @@ expr:
   | UNDERSCORE
      { not_expecting $loc($1) "wildcard \"_\"" }
 /* END AVOID */
+  | mkexp(select_expr)
+      { $1 }
 ;
 %inline expr_attrs:
   | LET MODULE ext_attributes mkrhs(module_name) module_binding_body IN seq_expr
@@ -2344,6 +2370,57 @@ expr:
       { mkuminus ~oploc:$loc($1) $1 $2 }
   | additive expr %prec prec_unary_plus
       { mkuplus ~oploc:$loc($1) $1 $2 }
+;
+
+select_expr:
+  SELECT_ boption(DISTINCT_) expr
+  ioption(FROM_ source_expr {$2})
+  ioption(WHERE_ expr {$2})
+  ioption(GROUP_ BY_ expr {$3})
+  ioption(HAVING_ expr {$2})
+  ioption(ORDER_ BY_ order_expr {$3})
+    { Pexp_select {
+        se_select = $3;
+        se_distinct = mkloc $2 (make_loc $loc($2));
+        se_from = $4;
+        se_where = $5;
+        se_groupby = $6;
+        se_having = $7;
+        se_orderby = Option.value ~default:[] $8;
+        se_orderby_loc = make_loc $loc($8)}
+    }
+;
+source_expr:
+  mksrc(
+    mkrhs(val_longident)
+      { Psrc_exp (
+          mkexp ~loc:$loc($1) (Pexp_ident $1),
+          [make_ghost (loc_last $1)]) }
+  | LIDENT LESSMINUS expr %prec above_COMMA
+      { Psrc_exp ($3, [mkloc $1 (make_loc $loc($1))]) }
+  | LPAREN
+    separated_nonempty_list(COMMA, LIDENT {mkloc $1 (make_loc $loc($1))})
+    RPAREN LESSMINUS expr %prec above_COMMA
+      { Psrc_exp ($5, $2) }
+  | source_expr COMMA source_expr
+      { Psrc_join ($1, $3) }
+  ) { $1 }
+;
+order_expr:
+  expr %prec above_COMMA
+    { [$1, PAscending] }
+| expr order_direction
+    { [$1, $2] }
+| order_expr COMMA order_expr
+    { $1 @ $3 }
+;
+%inline order_direction:
+| ASC_
+    { PAscending }
+| DESC_
+    { PDescending }
+| USING_ expr
+    { PUsing $2 }
 ;
 
 simple_expr:
@@ -2472,6 +2549,8 @@ simple_expr:
   | mod_longident DOT
     LPAREN MODULE ext_attributes module_expr COLON error
       { unclosed "(" $loc($3) ")" $loc($8) }
+  | LBRACE simple_expr simple_expr RBRACE
+      { Pexp_aggregate($2, $3) }
 ;
 labeled_simple_expr:
     simple_expr %prec below_HASH

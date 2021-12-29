@@ -47,6 +47,7 @@ type mapper =
       mapper -> module_type_declaration -> module_type_declaration;
     package_type: mapper -> package_type -> package_type;
     pat: 'k . mapper -> 'k general_pattern -> 'k general_pattern;
+    plan: mapper -> plan -> plan;
     row_field: mapper -> row_field -> row_field;
     object_field: mapper -> object_field -> object_field;
     open_declaration: mapper -> open_declaration -> open_declaration;
@@ -375,9 +376,47 @@ let expr sub x =
         e
     | Texp_open (od, e) ->
         Texp_open (sub.open_declaration sub od, sub.expr sub e)
+    | Texp_plan (e, pl) ->
+        Texp_plan (sub.expr sub e, pl)
+    | Texp_aggregate (e1, e2) ->
+        Texp_aggregate (sub.expr sub e1, sub.expr sub e2)
   in
   {x with exp_extra; exp_desc; exp_env}
 
+let plan sub x =
+  let plan_env = sub.env sub x.plan_env in
+  let plan_desc =
+    match x.plan_desc with
+    | Tplan_null -> Tplan_null
+    | Tplan_source e -> Tplan_source (sub.expr sub e)
+    | Tplan_product (pl1, pl2) ->
+        Tplan_product (sub.plan sub pl1, sub.plan sub pl2)
+    | Tplan_filter (pl, e) ->
+        Tplan_filter (sub.plan sub pl, sub.expr sub e)
+    | Tplan_project (pl, es) ->
+        Tplan_project (sub.plan sub pl, List.map (sub.expr sub) es)
+    | Tplan_sort (pl, es, os) ->
+        Tplan_sort (
+          sub.plan sub pl,
+          List.map (sub.expr sub) es,
+          List.map (function TUsing e -> TUsing (sub.expr sub e) | o -> o) os
+        )
+    | Tplan_aggregate_all (pl, fs, es) ->
+        Tplan_aggregate_all (
+          sub.plan sub pl,
+          List.map (Option.map (sub.expr sub)) fs,
+          List.map (sub.expr sub) es
+        )
+    | Tplan_aggregate (pl, e, fs, es) ->
+        Tplan_aggregate (
+          sub.plan sub pl,
+          sub.expr sub e,
+          List.map (Option.map (sub.expr sub)) fs,
+          List.map (sub.expr sub) es
+        )
+    | Tplan_unique pl -> Tplan_unique (sub.plan sub pl)
+  in
+  {x with plan_desc; plan_env}
 
 let package_type sub x =
   let pack_fields = List.map (tuple2 id (sub.typ sub)) x.pack_fields in
@@ -727,6 +766,7 @@ let default =
     module_type_declaration;
     package_type;
     pat;
+    plan;
     row_field;
     object_field;
     open_declaration;

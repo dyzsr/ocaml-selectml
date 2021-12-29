@@ -635,6 +635,13 @@ stdlib__Scanf.cmx : scanf.ml \
     stdlib__Scanf.cmi
 stdlib__Scanf.cmi : scanf.mli \
     stdlib.cmi
+stdlib__SelectML.cmo : selectML.ml \
+    stdlib__List.cmi \
+    stdlib__SelectML.cmi
+stdlib__SelectML.cmx : selectML.ml \
+    stdlib__List.cmx \
+    stdlib__SelectML.cmi
+stdlib__SelectML.cmi : selectML.mli
 stdlib__Seq.cmo : seq.ml \
     stdlib__Lazy.cmi \
     stdlib__Either.cmi \

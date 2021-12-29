@@ -96,7 +96,19 @@ let keyword_table =
     "land", INFIXOP3("land");
     "lsl", INFIXOP4("lsl");
     "lsr", INFIXOP4("lsr");
-    "asr", INFIXOP4("asr")
+    "asr", INFIXOP4("asr");
+
+    "SELECT", SELECT_;
+    "FROM", FROM_;
+    "WHERE", WHERE_;
+    "GROUP", GROUP_;
+    "HAVING", HAVING_;
+    "ORDER", ORDER_;
+    "DISTINCT", DISTINCT_;
+    "BY", BY_;
+    "ASC", ASC_;
+    "DESC", DESC_;
+    "USING", USING_;
 ]
 
 (* To buffer string literals *)
@@ -412,7 +424,8 @@ rule token = parse
   | lowercase_latin1 identchar_latin1 * as name
       { warn_latin1 lexbuf; LIDENT name }
   | uppercase identchar * as name
-      { UIDENT name } (* No capitalized keywords *)
+      { try Hashtbl.find keyword_table name
+        with Not_found -> UIDENT name }
   | uppercase_latin1 identchar_latin1 * as name
       { warn_latin1 lexbuf; UIDENT name }
   | int_literal as lit { INT (lit, None) }

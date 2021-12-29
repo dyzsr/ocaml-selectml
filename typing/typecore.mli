@@ -215,6 +215,7 @@ type error =
   | Missing_type_constraint
   | Wrong_expected_kind of wrong_kind_sort * wrong_kind_context * type_expr
   | Expr_not_a_record_type of type_expr
+  | Invalid_use_of_aggregate
 
 exception Error of Location.t * Env.t * error
 exception Error_forward of Location.error
@@ -242,6 +243,16 @@ val type_object:
 val type_package:
   (Env.t -> Parsetree.module_expr -> Path.t -> (Longident.t * type_expr) list ->
   Typedtree.module_expr * (Longident.t * type_expr) list) ref
+
+val type_select:
+  (?in_function:(Location.t * type_expr) -> loc:Location.t -> Env.t ->
+   Parsetree.select_expr -> type_expected ->
+   Typedtree.expression * Typedtree.plan) ref
+
+val type_aggregate:
+  (?in_function:(Location.t * Types.type_expr) -> Env.t ->
+   Parsetree.expression -> Parsetree.expression ->
+   Typedtree.expression * Typedtree.expression * Types.type_expr) ref
 
 val constant: Parsetree.constant -> (Asttypes.constant, error) result
 

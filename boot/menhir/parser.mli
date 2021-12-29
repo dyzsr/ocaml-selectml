@@ -4,9 +4,11 @@
 type token = 
   | WITH
   | WHILE
+  | WHERE_
   | WHEN
   | VIRTUAL
   | VAL
+  | USING_
   | UNDERSCORE
   | UIDENT of (string)
   | TYPE
@@ -21,6 +23,7 @@ type token =
   | SIG
   | SEMISEMI
   | SEMI
+  | SELECT_
   | RPAREN
   | REC
   | RBRACKET
@@ -35,6 +38,7 @@ type token =
   | PLUSDOT
   | PLUS
   | PERCENT
+  | ORDER_
   | OR
   | OPTLABEL of (string)
   | OPEN
@@ -79,14 +83,17 @@ type token =
   | INCLUDE
   | IN
   | IF
+  | HAVING_
   | HASHOP of (string)
   | HASH
+  | GROUP_
   | GREATERRBRACKET
   | GREATERRBRACE
   | GREATER
   | FUNCTOR
   | FUNCTION
   | FUN
+  | FROM_
   | FOR
   | FLOAT of (string * char option)
   | FALSE
@@ -104,6 +111,8 @@ type token =
   | DONE
   | DOCSTRING of (Docstrings.docstring)
   | DO
+  | DISTINCT_
+  | DESC_
   | CONSTRAINT
   | COMMENT of (string * Location.t)
   | COMMA
@@ -113,6 +122,7 @@ type token =
   | COLON
   | CLASS
   | CHAR of (char)
+  | BY_
   | BEGIN
   | BARRBRACKET
   | BARBAR
@@ -120,6 +130,7 @@ type token =
   | BANG
   | BACKQUOTE
   | ASSERT
+  | ASC_
   | AS
   | ANDOP of (string)
   | AND

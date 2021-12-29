@@ -41,6 +41,7 @@ type iterator = {
   class_type_field: iterator -> class_type_field -> unit;
   constructor_declaration: iterator -> constructor_declaration -> unit;
   expr: iterator -> expression -> unit;
+  srcexpr : iterator -> source_expr -> unit;
   extension: iterator -> extension -> unit;
   extension_constructor: iterator -> extension_constructor -> unit;
   include_declaration: iterator -> include_declaration -> unit;
@@ -419,7 +420,30 @@ module E = struct
         List.iter (sub.binding_op sub) ands;
         sub.expr sub body
     | Pexp_extension x -> sub.extension sub x
+    | Pexp_select se ->
+        sub.expr sub se.se_select;
+        iter_loc sub se.se_distinct;
+        iter_opt (sub.srcexpr sub) se.se_from;
+        iter_opt (sub.expr sub) se.se_where;
+        iter_opt (sub.expr sub) se.se_groupby;
+        iter_opt (sub.expr sub) se.se_having;
+        List.iter
+          (fun (e, o) ->
+            sub.expr sub e;
+            match o with PUsing e -> sub.expr sub e | _ -> ())
+          se.se_orderby;
+        sub.location sub se.se_orderby_loc
+    | Pexp_aggregate (e1, e2) ->
+        sub.expr sub e1; sub.expr sub e2
     | Pexp_unreachable -> ()
+
+  let iter_srcexpr sub {psrc_loc = loc; psrc_desc = desc} =
+    sub.location sub loc;
+    match desc with
+    | Psrc_exp (e, s) ->
+        sub.expr sub e; List.iter (iter_loc sub) s
+    | Psrc_join (s1, s2) ->
+        sub.srcexpr sub s1; sub.srcexpr sub s2
 
   let iter_binding_op sub {pbop_op; pbop_pat; pbop_exp; pbop_loc} =
     iter_loc sub pbop_op;
@@ -568,6 +592,7 @@ let default_iterator =
 
     pat = P.iter;
     expr = E.iter;
+    srcexpr = E.iter_srcexpr;
     binding_op = E.iter_binding_op;
 
     module_declaration =

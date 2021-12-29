@@ -18,3 +18,7 @@ let f = function [%record_with_functor_fields] -> ();;
 module type s = sig
  [%%missing_rhs]
 end;;
+
+SELECT [%tuple];;
+SELECT x FROM t <- ([%tuple]);;
+SELECT {count ([%tuple])};;

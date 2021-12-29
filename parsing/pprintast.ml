@@ -170,12 +170,14 @@ type ctxt = {
   pipe : bool;
   semi : bool;
   ifthenelse : bool;
+  selectexpr : bool;
 }
 
-let reset_ctxt = { pipe=false; semi=false; ifthenelse=false }
+let reset_ctxt = { pipe=false; semi=false; ifthenelse=false; selectexpr=false }
 let under_pipe ctxt = { ctxt with pipe=true }
 let under_semi ctxt = { ctxt with semi=true }
 let under_ifthenelse ctxt = { ctxt with ifthenelse=true }
+let under_selectexpr ctxt = { ctxt with selectexpr=true }
 (*
 let reset_semi ctxt = { ctxt with semi=false }
 let reset_ifthenelse ctxt = { ctxt with ifthenelse=false }
@@ -613,6 +615,8 @@ and expression ctxt f x =
     pp f "((%a)@,%a)" (expression ctxt) {x with pexp_attributes=[]}
       (attributes ctxt) x.pexp_attributes
   else match x.pexp_desc with
+    | Pexp_select _ when ctxt.selectexpr ->
+        paren true (expression reset_ctxt) f x
     | Pexp_function _ | Pexp_fun _ | Pexp_match _ | Pexp_try _ | Pexp_sequence _
     | Pexp_newtype _
       when ctxt.pipe || ctxt.semi ->
@@ -756,6 +760,9 @@ and expression ctxt f x =
           (list ~sep:"@," (binding_op ctxt)) ands
           (expression ctxt) body
     | Pexp_extension e -> extension ctxt f e
+    | Pexp_select se -> select_expr (under_selectexpr ctxt) f se
+    | Pexp_aggregate (e1, e2) ->
+        pp f "{@[<2>%a@ %a@]}" (expression2 ctxt) e1 (expression2 ctxt) e2
     | Pexp_unreachable -> pp f "."
     | _ -> expression1 ctxt f x
 
@@ -829,6 +836,43 @@ and simple_expr ctxt f x =
         pp f fmt (pattern ctxt) s expression e1 direction_flag
           df expression e2 expression e3
     | _ ->  paren true (expression ctxt) f x
+
+and select_expr ctxt f se =
+  pp f "@[<hv>";
+  if se.se_distinct.txt then
+    pp f "@[<2>SELECT@ DISTINCT %a@]" (expression ctxt) se.se_select
+  else
+    pp f "@[<2>SELECT@ %a@]" (expression ctxt) se.se_select;
+  option ~first:"@;@[<2>FROM " ~last:"@]"
+    (source_expr ctxt) f se.se_from;
+  option ~first:"@;@[<2>WHERE " ~last:"@]"
+    (expression ctxt) f se.se_where;
+  option ~first:"@;@[<2>GROUP BY " ~last:"@]"
+    (expression ctxt) f se.se_groupby;
+  option ~first:"@;@[<2>HAVING " ~last:"@]"
+    (expression ctxt) f se.se_having;
+  if List.length se.se_orderby > 0 then
+    pp f "@;@[<2>ORDER BY %a@]"
+      (list ~sep:",@;"
+        (fun f (e, o) ->
+          pp f "%a@;" (expression ctxt) e;
+          match o with
+          | PAscending -> pp f "ASC"
+          | PDescending -> pp f "DESC"
+          | PUsing e -> pp f "USING %a" (expression ctxt) e))
+      se.se_orderby;
+  pp f "@]"
+
+and source_expr ctxt f src =
+  match src.psrc_desc with
+  | Psrc_exp (e, [s]) when s.loc.loc_ghost ->
+      pp f "%a" (simple_expr ctxt) e
+  | Psrc_exp (e, [s]) ->
+      pp f "@[%a@ <- %a@]" string_loc s (simple_expr ctxt) e
+  | Psrc_exp (e, s) ->
+      pp f "@[(%a)@ <- %a@]" (list ~sep:"," string_loc) s (simple_expr ctxt) e
+  | Psrc_join (s1, s2) ->
+      pp f "%a,@ %a" (source_expr ctxt) s1 (source_expr ctxt) s2
 
 and attributes ctxt f l =
   List.iter (attribute ctxt f) l

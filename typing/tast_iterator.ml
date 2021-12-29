@@ -41,6 +41,7 @@ type iterator =
     module_type_declaration: iterator -> module_type_declaration -> unit;
     package_type: iterator -> package_type -> unit;
     pat: 'k . iterator -> 'k general_pattern -> unit;
+    plan: iterator -> plan -> unit;
     row_field: iterator -> row_field -> unit;
     object_field: iterator -> object_field -> unit;
     open_declaration: iterator -> open_declaration -> unit;
@@ -260,7 +261,38 @@ let expr sub {exp_extra; exp_desc; exp_env; _} =
   | Texp_open (od, e) ->
       sub.open_declaration sub od;
       sub.expr sub e
+  | Texp_plan (exp, pl) ->
+      sub.expr sub exp;
+      sub.plan sub pl
+  | Texp_aggregate (exp, arg) ->
+      sub.expr sub exp;
+      sub.expr sub arg
 
+let plan sub {plan_desc; plan_env; _} =
+  sub.env sub plan_env;
+  match plan_desc with
+  | Tplan_null -> ()
+  | Tplan_source e -> sub.expr sub e
+  | Tplan_product (pl1, pl2) ->
+      sub.plan sub pl1; sub.plan sub pl2
+  | Tplan_filter (pl, e) ->
+      sub.plan sub pl; sub.expr sub e
+  | Tplan_project (pl, es) ->
+      sub.plan sub pl; List.iter (sub.expr sub) es
+  | Tplan_sort (pl, es, os) ->
+      sub.plan sub pl;
+      List.iter (sub.expr sub) es;
+      List.iter (function TUsing e -> sub.expr sub e | _ -> ()) os
+  | Tplan_aggregate_all (pl, fs, es) ->
+      sub.plan sub pl;
+      List.iter (Option.iter (sub.expr sub)) fs;
+      List.iter (sub.expr sub) es
+  | Tplan_aggregate (pl, e, fs, es) ->
+      sub.plan sub pl;
+      sub.expr sub e;
+      List.iter (Option.iter (sub.expr sub)) fs;
+      List.iter (sub.expr sub) es
+  | Tplan_unique pl -> sub.plan sub pl
 
 let package_type sub {pack_fields; _} =
   List.iter (fun (_, p) -> sub.typ sub p) pack_fields
@@ -494,6 +526,7 @@ let default_iterator =
     module_type_declaration;
     package_type;
     pat;
+    plan;
     row_field;
     object_field;
     open_declaration;

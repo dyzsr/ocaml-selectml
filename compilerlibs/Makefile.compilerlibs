@@ -117,6 +117,7 @@ TYPING = \
   typing/typeopt.cmo \
   typing/rec_check.cmo \
   typing/typecore.cmo \
+  typing/typeplan.cmo \
   typing/typeclass.cmo \
   typing/typemod.cmo
 TYPING_CMI = \

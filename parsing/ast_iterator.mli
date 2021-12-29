@@ -44,6 +44,7 @@ type iterator = {
   class_type_field: iterator -> class_type_field -> unit;
   constructor_declaration: iterator -> constructor_declaration -> unit;
   expr: iterator -> expression -> unit;
+  srcexpr : iterator -> source_expr -> unit;
   extension: iterator -> extension -> unit;
   extension_constructor: iterator -> extension_constructor -> unit;
   include_declaration: iterator -> include_declaration -> unit;

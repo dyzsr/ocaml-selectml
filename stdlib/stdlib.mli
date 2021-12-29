@@ -1379,6 +1379,51 @@ val do_at_exit : unit -> unit
 
 (**/**)
 
+(** {1 Aggregate Functions} *)
+
+type ('a, 'b, 'c) aggfunc = 'c * ('c -> 'a -> 'c) * ('c -> 'b)
+type (_, _) agg = Agg : ('a, 'b, 'c) aggfunc -> ('a, 'b) agg
+  (** - Create an aggregate function
+          [let lst = Agg ([], (::), List.rev) in]
+      - Usage inside SELECT expressions
+          [SELECT {lst x} FROM x <- [1;2;3]]
+      - Usage outside SELECT expressions
+          [let Agg (acc, iter, res) = firstrow in
+           res (List.fold_left iter acc l)]
+      Standalone usage of aggregate functions
+      (e.g. [let _ = {lst x}]) is not allowed. *)
+
+val firstrow : ('a, 'a) agg
+val agg_min : ('a, 'a) agg
+val agg_max : ('a, 'a) agg
+val count : ('a, int) agg
+val sum : (int, int) agg
+val avg : (int, int) agg
+val fsum : (float, float) agg
+val favg : (float, float) agg
+
+(** {1 SelectML Module Signature} *)
+
+module type SelectMLType = sig
+  type 'a src
+  type 'a t
+
+  val input : 'a src -> 'a t
+  val output : 'a t -> 'a src
+
+  val one : 'a t -> 'a
+  val singleton : 'a -> 'a t
+  val product : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  val map : ('a -> 'b) -> 'a t -> 'b t
+  val filter : ('a -> bool) -> 'a t -> 'a t
+  val sort : ('a -> 'a -> int) -> 'a t -> 'a t
+  val unique : 'a t -> 'a t
+  val group_all : ('a, 'b) agg -> 'a t -> 'b
+  val group : ('a -> 'c) -> ('a, 'b) agg -> 'a t -> 'b t
+end
+
+(**/**)
+
 (** {1:modules Standard library modules } *)
 
 (*MODULE_ALIASES*)
@@ -1433,6 +1478,7 @@ module Queue        = Queue
 module Random       = Random
 module Result       = Result
 module Scanf        = Scanf
+module SelectML     = SelectML
 module Seq          = Seq
 module Set          = Set
 module Stack        = Stack

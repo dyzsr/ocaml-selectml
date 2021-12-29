@@ -177,6 +177,12 @@ let classify_expression : Typedtree.expression -> sd =
     | Texp_apply _ ->
         Dynamic
 
+    | Texp_aggregate ({exp_desc = Texp_ident (_, _, vd)}, _)
+      when is_ref vd ->
+        Static
+    | Texp_aggregate _ ->
+        Dynamic
+
     | Texp_for _
     | Texp_constant _
     | Texp_new _
@@ -195,6 +201,7 @@ let classify_expression : Typedtree.expression -> sd =
     | Texp_extension_constructor _ ->
         Static
 
+    | Texp_plan _
     | Texp_match _
     | Texp_ifthenelse _
     | Texp_send _
@@ -817,6 +824,22 @@ let rec expression : Typedtree.expression -> term_judg =
       path pth << Dereference
     | Texp_open (od, e) ->
       open_declaration od >> expression e
+    | Texp_plan (e, _) ->
+      expression e
+    | Texp_aggregate ({exp_desc = Texp_ident (_, _, vd)}, arg)
+      when is_ref vd ->
+      (*
+        G |- e: m[Guard]
+        ------------------
+        G |- ref e: m
+      *)
+      expression arg << Guard
+    | Texp_aggregate (e, arg)  ->
+      (*
+        Note: `{e arg}` is treated as if `e` is a function.
+      *)
+      join [expression e; expression arg] << Dereference
+
 
 and binding_op : Typedtree.binding_op -> term_judg =
   fun bop ->

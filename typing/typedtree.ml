@@ -147,6 +147,36 @@ and expression_desc =
   | Texp_unreachable
   | Texp_extension_constructor of Longident.t loc * Path.t
   | Texp_open of open_declaration * expression
+  | Texp_plan of expression * plan
+  | Texp_aggregate of expression * expression
+
+and plan =
+  { plan_desc : plan_desc;
+    plan_loc : Location.t;
+    plan_env: Env.t;
+    plan_cardinality : cardinality;
+    plan_patterns : Parsetree.pattern list;
+  }
+
+and cardinality = Zero | One | Many
+
+and plan_desc =
+  | Tplan_null
+  | Tplan_source of expression
+  | Tplan_product of plan * plan
+  | Tplan_filter of plan * expression
+  | Tplan_project of plan * expression list
+  | Tplan_sort of plan * expression list * order_direction list
+  | Tplan_aggregate_all of
+      plan * expression option list * expression list
+  | Tplan_aggregate of
+      plan * expression * expression option list * expression list
+  | Tplan_unique of plan
+
+and order_direction =
+  | TAscending
+  | TDescending
+  | TUsing of expression
 
 and meth =
   | Tmeth_name of string

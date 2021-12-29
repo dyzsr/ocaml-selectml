@@ -75,6 +75,7 @@ type mapper = {
   constructor_declaration: mapper -> constructor_declaration
                            -> constructor_declaration;
   expr: mapper -> expression -> expression;
+  srcexpr : mapper -> source_expr -> source_expr;
   extension: mapper -> extension -> extension;
   extension_constructor: mapper -> extension_constructor
                          -> extension_constructor;

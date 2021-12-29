@@ -1,6 +1,6 @@
 (* TEST
    include ocamlcommon
-   readonly_files = "source.ml"
+   readonly_files = "source.ml select.ml"
 *)
 
 (* (c) Alain Frisch / Lexifi *)
@@ -62,14 +62,15 @@ let test parse_fun pprint print map filename =
       let str = to_string pprint ast in
       match from_string parse_fun str with
       | exception exn ->
+          print_endline str;
           Printf.printf "%s: FAIL, CANNOT REPARSE\n" filename;
           report_err exn;
-          print_endline str;
           print_endline "====================================================="
       | ast2 ->
           let ast = map remove_locs remove_locs ast in
           let ast2 = map remove_locs remove_locs ast2 in
           if ast <> ast2 then begin
+            print_endline str;
             Printf.printf "%s:  FAIL, REPARSED AST IS DIFFERENT\n%!" filename;
             let f1 = to_tmp_file print ast in
             let f2 = to_tmp_file print ast2 in
@@ -103,4 +104,5 @@ let rec process path =
       path
 
 let () =
-  process "source.ml"
+  process "source.ml";
+  process "select.ml"

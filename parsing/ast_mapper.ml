@@ -46,6 +46,7 @@ type mapper = {
   constructor_declaration: mapper -> constructor_declaration
                            -> constructor_declaration;
   expr: mapper -> expression -> expression;
+  srcexpr : mapper -> source_expr -> source_expr;
   extension: mapper -> extension -> extension;
   extension_constructor: mapper -> extension_constructor
                          -> extension_constructor;
@@ -462,7 +463,33 @@ module E = struct
         letop ~loc ~attrs (sub.binding_op sub let_)
           (List.map (sub.binding_op sub) ands) (sub.expr sub body)
     | Pexp_extension x -> extension ~loc ~attrs (sub.extension sub x)
+    | Pexp_select se ->
+        select ~loc ~attrs
+          { se_select = sub.expr sub se.se_select;
+            se_distinct = map_loc sub se.se_distinct;
+            se_from = map_opt (sub.srcexpr sub) se.se_from;
+            se_where = map_opt (sub.expr sub) se.se_where;
+            se_groupby = map_opt (sub.expr sub) se.se_groupby;
+            se_having = map_opt (sub.expr sub) se.se_having;
+            se_orderby =
+              List.map
+                (fun (e, o) ->
+                  sub.expr sub e,
+                  match o with PUsing e -> PUsing (sub.expr sub e) | _ -> o)
+                se.se_orderby;
+            se_orderby_loc = sub.location sub se.se_orderby_loc;
+          }
+    | Pexp_aggregate (e1, e2) ->
+        aggregate ~loc ~attrs (sub.expr sub e1) (sub.expr sub e2)
     | Pexp_unreachable -> unreachable ~loc ~attrs ()
+
+  let map_src sub {psrc_loc = loc; psrc_desc = desc} =
+    let loc = sub.location sub loc in
+    match desc with
+    | Psrc_exp (e, s) ->
+        Exp.mksrc ~loc (Psrc_exp (sub.expr sub e, List.map (map_loc sub) s))
+    | Psrc_join (s1, s2) ->
+        Exp.mksrc ~loc (Psrc_join (sub.srcexpr sub s1, sub.srcexpr sub s2))
 
   let map_binding_op sub {pbop_op; pbop_pat; pbop_exp; pbop_loc} =
     let open Exp in
@@ -622,6 +649,7 @@ let default_mapper =
 
     pat = P.map;
     expr = E.map;
+    srcexpr = E.map_src;
     binding_op = E.map_binding_op;
 
     module_declaration =

@@ -1,0 +1,9 @@
+Line 5, characters 16-17:
+5 | SELECT x FROM f x;;
+                    ^
+Error: Syntax error
+Line 2, characters 19-20:
+2 | SELECT x FROM A.x, [1;2;3];;
+                       ^
+Error: Syntax error
+

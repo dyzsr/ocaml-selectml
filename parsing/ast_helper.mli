@@ -188,8 +188,12 @@ module Exp:
     val letop: ?loc:loc -> ?attrs:attrs -> binding_op
                -> binding_op list -> expression -> expression
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> expression
+    val select : ?loc:loc -> ?attrs:attrs -> select_expr -> expression
+    val aggregate : ?loc:loc -> ?attrs:attrs -> expression -> expression
+                    -> expression
     val unreachable: ?loc:loc -> ?attrs:attrs -> unit -> expression
 
+    val mksrc : ?loc:loc -> source_expr_desc -> source_expr
     val case: pattern -> ?guard:expression -> expression -> case
     val binding_op: str -> pattern -> expression -> loc -> binding_op
   end

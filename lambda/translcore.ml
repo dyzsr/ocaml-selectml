@@ -28,6 +28,7 @@ open Debuginfo.Scoped_location
 type error =
     Free_super_var
   | Unreachable_reached
+  | Standalone_aggregate
 
 exception Error of Location.t * error
 
@@ -631,6 +632,9 @@ and transl_exp0 ~in_new_scope ~scopes e =
           Llet(pure, Pgenval, oid,
                !transl_module ~scopes Tcoerce_none None od.open_expr, body)
       end
+  | Texp_plan (e, _) -> transl_exp ~scopes e
+  | Texp_aggregate _ ->
+      raise (Error (e.exp_loc, Standalone_aggregate))
 
 and pure_module m =
   match m.mod_desc with
@@ -1211,6 +1215,8 @@ let report_error ppf = function
         "Ancestor names can only be used to select inherited methods"
   | Unreachable_reached ->
       fprintf ppf "Unreachable expression was reached"
+  | Standalone_aggregate ->
+      fprintf ppf "Standalone aggregate is not allowed"
 
 let () =
   Location.register_error_of_exn

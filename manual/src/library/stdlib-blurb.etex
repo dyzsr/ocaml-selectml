@@ -58,6 +58,7 @@ the above 4 modules \\
 "Stack" & p.~\stdpageref{Stack} & last-in first-out stacks \\
 "Queue" & p.~\stdpageref{Queue} & first-in first-out queues \\
 "Buffer" & p.~\stdpageref{Buffer} & buffers that grow on demand \\
+"SelectML" & p.~\stdpageref{SelectML} & the SelectML language facilities \\
 "Seq" & p.~\stdpageref{Seq} & functional iterators \\
 "Lazy" & p.~\stdpageref{Lazy} & delayed evaluation \\
 "Weak" & p.~\stdpageref{Weak} & references that don't prevent objects
@@ -154,6 +155,7 @@ be called from C \\
 \stddocitem{Random}{pseudo-random number generator (PRNG)}
 \stddocitem{Result}{result values}
 \stddocitem{Scanf}{formatted input functions}
+\stddocitem{SelectML}{the SelectML language facilities}
 \stddocitem{Seq}{functional iterators}
 \stddocitem{Set}{sets over ordered types}
 \stddocitem{Stack}{last-in first-out stacks}
