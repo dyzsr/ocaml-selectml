@@ -147,7 +147,7 @@ and expression_desc =
   | Texp_unreachable
   | Texp_extension_constructor of Longident.t loc * Path.t
   | Texp_open of open_declaration * expression
-  | Texp_plan of expression * plan
+  | Texp_plan of plan * expression * (plan -> expression)
   | Texp_aggregate of expression * expression
 
 and plan =

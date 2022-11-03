@@ -450,9 +450,8 @@ and expression i ppf x =
       module_expr i ppf o.open_expr;
       attributes i ppf o.open_attributes;
       expression i ppf e;
-  | Texp_plan (e, p) ->
+  | Texp_plan (p, _, _) ->
       line i ppf "Texp_plan\n";
-      expression i ppf e;
       plan i ppf p
   | Texp_aggregate (e1, e2) ->
       line i ppf "Texp_aggregate\n";

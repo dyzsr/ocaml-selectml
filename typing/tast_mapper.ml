@@ -376,8 +376,8 @@ let expr sub x =
         e
     | Texp_open (od, e) ->
         Texp_open (sub.open_declaration sub od, sub.expr sub e)
-    | Texp_plan (e, pl) ->
-        Texp_plan (sub.expr sub e, pl)
+    | Texp_plan (pl, e, transl) ->
+        Texp_plan (sub.plan sub pl, sub.expr sub e, transl)
     | Texp_aggregate (e1, e2) ->
         Texp_aggregate (sub.expr sub e1, sub.expr sub e2)
   in

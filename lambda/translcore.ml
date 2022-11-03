@@ -632,7 +632,8 @@ and transl_exp0 ~in_new_scope ~scopes e =
           Llet(pure, Pgenval, oid,
                !transl_module ~scopes Tcoerce_none None od.open_expr, body)
       end
-  | Texp_plan (e, _) -> transl_exp ~scopes e
+  | Texp_plan (p, _, transl) ->
+      transl_exp ~scopes (transl p)
   | Texp_aggregate _ ->
       raise (Error (e.exp_loc, Standalone_aggregate))
 

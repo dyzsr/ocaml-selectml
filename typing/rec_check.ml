@@ -174,12 +174,7 @@ let classify_expression : Typedtree.expression -> sd =
     | Texp_apply (_,args)
       when List.exists is_abstracted_arg args ->
         Static
-    | Texp_apply _ ->
-        Dynamic
-
-    | Texp_aggregate ({exp_desc = Texp_ident (_, _, vd)}, _)
-      when is_ref vd ->
-        Static
+    | Texp_apply _
     | Texp_aggregate _ ->
         Dynamic
 
@@ -824,16 +819,8 @@ let rec expression : Typedtree.expression -> term_judg =
       path pth << Dereference
     | Texp_open (od, e) ->
       open_declaration od >> expression e
-    | Texp_plan (e, _) ->
-      expression e
-    | Texp_aggregate ({exp_desc = Texp_ident (_, _, vd)}, arg)
-      when is_ref vd ->
-      (*
-        G |- e: m[Guard]
-        ------------------
-        G |- ref e: m
-      *)
-      expression arg << Guard
+    | Texp_plan (_, e, _) ->
+      expression e << Dereference
     | Texp_aggregate (e, arg)  ->
       (*
         Note: `{e arg}` is treated as if `e` is a function.

@@ -244,14 +244,13 @@ val type_package:
   (Env.t -> Parsetree.module_expr -> Path.t -> (Longident.t * type_expr) list ->
   Typedtree.module_expr * (Longident.t * type_expr) list) ref
 
+(* Forward declaration, to be filled in by Typeplan.type_select *)
 val type_select:
-  (?in_function:(Location.t * type_expr) -> loc:Location.t -> Env.t ->
-   Parsetree.select_expr -> type_expected ->
-   Typedtree.expression * Typedtree.plan) ref
-
+  (loc:Location.t -> Env.t -> Parsetree.select_expr -> type_expected ->
+   Typedtree.plan * (Typedtree.plan -> Typedtree.expression)) ref
+(* Forward declaration, to be filled in by Typeplan.type_aggregate *)
 val type_aggregate:
-  (?in_function:(Location.t * Types.type_expr) -> Env.t ->
-   Parsetree.expression -> Parsetree.expression ->
+  (Env.t -> Parsetree.expression -> Parsetree.expression ->
    Typedtree.expression * Typedtree.expression * Types.type_expr) ref
 
 val constant: Parsetree.constant -> (Asttypes.constant, error) result

@@ -203,11 +203,11 @@ let type_object =
 
 (* Forward declaration, to be filled in by Typeplan.type_select *)
 let type_select =
-  ref (fun ?in_function:_ ~loc:_ _env _se _expected -> assert false)
+  ref (fun ~loc:_ _env _se _expected -> assert false)
 
 (* Forward declaration, to be filled in by Typeplan.type_aggregate *)
 let type_aggregate =
-  ref (fun ?in_function:_ _env _sfunct _sarg -> assert false)
+  ref (fun _env _sfunct _sarg -> assert false)
 
 (*
   Saving and outputting type information.
@@ -2368,7 +2368,7 @@ let rec is_nonexpansive exp =
   | Texp_letop _
   | Texp_extension_constructor _ ->
     false
-  | Texp_plan (_, p) -> is_nonexpansive_plan p
+  | Texp_plan (p, _, _) -> is_nonexpansive_plan p
 
 and is_nonexpansive_plan plan =
   match plan.plan_desc with
@@ -2646,7 +2646,7 @@ let check_partial_application ~statement exp =
             | Texp_apply _ | Texp_send _ | Texp_new _ | Texp_letop _ ->
                 Location.prerr_warning exp_loc
                   Warnings.Ignored_partial_application
-            | Texp_plan (_, p) -> check_plan p
+            | Texp_plan (p, _, _) -> check_plan p
           end
         and check_plan {plan_desc; plan_cardinality; _} =
           match plan_desc with
@@ -4014,17 +4014,16 @@ and type_expect_
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
 
   | Pexp_select se ->
-      let exp, plan =
-        !type_select ?in_function ~loc env se ty_expected_explained in
-      re { exp_desc = Texp_plan (exp, plan);
+      let plan, transl = !type_select ~loc env se ty_expected_explained in
+      let exp = transl plan in
+      re { exp_desc = Texp_plan (plan, exp, transl);
            exp_loc = loc; exp_extra = [];
            exp_type = exp.exp_type;
            exp_attributes = sexp.pexp_attributes;
            exp_env = env }
 
   | Pexp_aggregate (sfunct, sarg) ->
-      let funct, arg, ty_ret =
-        !type_aggregate ?in_function env sfunct sarg in
+      let funct, arg, ty_ret = !type_aggregate env sfunct sarg in
       re { exp_desc = Texp_aggregate (funct, arg);
            exp_loc = loc; exp_extra = [];
            exp_type = ty_ret;

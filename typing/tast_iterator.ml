@@ -261,8 +261,7 @@ let expr sub {exp_extra; exp_desc; exp_env; _} =
   | Texp_open (od, e) ->
       sub.open_declaration sub od;
       sub.expr sub e
-  | Texp_plan (exp, pl) ->
-      sub.expr sub exp;
+  | Texp_plan (pl, _, _) ->
       sub.plan sub pl
   | Texp_aggregate (exp, arg) ->
       sub.expr sub exp;

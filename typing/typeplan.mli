@@ -15,16 +15,9 @@
 (* Typing for query plans *)
 
 val type_select:
-  ?in_function:(Location.t * Types.type_expr) -> loc:Location.t -> Env.t ->
-  Parsetree.select_expr -> Typecore.type_expected ->
-  Typedtree.expression * Typedtree.plan
+  loc:Location.t -> Env.t -> Parsetree.select_expr -> Typecore.type_expected ->
+  Typedtree.plan * (Typedtree.plan -> Typedtree.expression)
 
 val type_aggregate:
-  ?in_function:(Location.t * Types.type_expr) -> Env.t ->
-  Parsetree.expression -> Parsetree.expression ->
+  Env.t -> Parsetree.expression -> Parsetree.expression ->
   Typedtree.expression * Typedtree.expression * Types.type_expr
-
-val transl_plan:
-  ?in_function:(Location.t * Types.type_expr) -> Env.t ->
-  Typedtree.plan -> Typecore.type_expected ->
-  Typedtree.expression * Typedtree.plan

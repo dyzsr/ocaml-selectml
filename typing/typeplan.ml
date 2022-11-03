@@ -144,7 +144,7 @@ let expand_aggregate ~scopes exp =
   let retpats = List.map (fun (_, _, _, _, _, pat) -> pat) aggs in
   (funcs, arglist, argcols, argpats, retcols, retpats, exp)
 
-let build_plan ?in_function ~loc env se =
+let build_plan ~loc env se =
   let old_env = env in
   let scope = create_scope () in
   let child =
@@ -175,7 +175,7 @@ let build_plan ?in_function ~loc env se =
                 assert (List.length decl.type_params = 1);
                 newconstr path [ty]
               in
-              let exp = Typecore.type_expect ?in_function env e
+              let exp = Typecore.type_expect env e
                 (Typecore.mk_expected ty_src) in
               let plan =
                 { plan_loc = se_from.psrc_loc;
@@ -552,7 +552,7 @@ let build_plan ?in_function ~loc env se =
   end_se_scope ();
   !child
 
-let type_aggregate ?in_function env sfunct sarg =
+let type_aggregate env sfunct sarg =
   let lid = Longident.(Ldot (Lident "Stdlib", "agg")) in
   let path, decl = Env.lookup_type ~loc:sfunct.pexp_loc lid env in
   let vars = Ctype.instance_list decl.type_params in
@@ -562,9 +562,9 @@ let type_aggregate ?in_function env sfunct sarg =
     | _ -> failwith "type_aggregate"
   in
   let ty_funct = newconstr path vars in
-  let funct = Typecore.type_expect ?in_function env sfunct
+  let funct = Typecore.type_expect env sfunct
       (Typecore.mk_expected ty_funct) in
-  let arg = Typecore.type_expect ?in_function env sarg
+  let arg = Typecore.type_expect env sarg
       (Typecore.mk_expected ty_arg) in
   funct, arg, ty_ret
 
@@ -769,14 +769,11 @@ let transl env plan =
   | One -> one $ ast
   | Zero | Many -> output $ ast
 
-let transl_plan ?in_function env plan ty_expected_explained =
-  let sexp = transl env plan in
-  let exp = Typecore.type_expect ?in_function env sexp ty_expected_explained in
-  exp, plan
-
-let type_select ?in_function ~loc env se ty_expected_explained =
-  let plan = build_plan ?in_function ~loc env se in
-  transl_plan ?in_function env plan ty_expected_explained
+let type_select ~loc env se ty_expected_explained =
+  let plan = build_plan ~loc env se in
+  let transl pl =
+    Typecore.type_expect env (transl env pl) ty_expected_explained in
+  plan, transl
 
 let () =
   Typecore.type_select := type_select;

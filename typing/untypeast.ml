@@ -516,7 +516,8 @@ let expression sub exp =
                              ])
     | Texp_open (od, exp) ->
         Pexp_open (sub.open_declaration sub od, sub.expr sub exp)
-    | Texp_plan (exp, _) -> (sub.expr sub exp).pexp_desc
+    | Texp_plan (_, exp, _) ->
+        (sub.expr sub exp).pexp_desc
     | Texp_aggregate (exp, arg) ->
         Pexp_aggregate (sub.expr sub exp, sub.expr sub arg)
   in
