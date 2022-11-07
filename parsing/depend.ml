@@ -286,7 +286,9 @@ let rec add_expr bv exp =
 and add_srcexpr bv src =
   match src.psrc_desc with
   | Psrc_exp (e, _) -> add_expr bv e
-  | Psrc_join (s1, s2) -> add_srcexpr bv s1; add_srcexpr bv s2
+  | Psrc_product (s1, s2) -> add_srcexpr bv s1; add_srcexpr bv s2
+  | Psrc_join (s1, s2, e) ->
+      add_srcexpr bv s1; add_srcexpr bv s2; add_expr bv e
 
 and add_cases bv cases =
   List.iter (add_case bv) cases

@@ -150,88 +150,97 @@ let build_plan ~loc env se =
   let child =
     ref { plan_desc = Tplan_null;
           plan_loc = loc;
-          plan_env = env;
           plan_cardinality = One;
           plan_patterns =
-            [Ast_helper.Pat.construct ~loc
-              (mkloc (Longident.Lident "()") loc) None];
+            [Pat.construct ~loc
+              (mkloc (Lident "()") loc) None];
         } in
-  (* handle FROM *)
-  let env =
-    match se.se_from with
+
+  let handle_from se_from =
+    let vars = Hashtbl.create 31 in
+    let rec aux srcexpr =
+      match srcexpr.psrc_desc with
+      | Psrc_exp (e, s) ->
+          List.iter
+            (fun {txt=v; loc} ->
+              if Hashtbl.mem vars v then
+                raise Typecore.(Error (loc, env, Multiply_bound_variable v));
+              Hashtbl.add vars v ())
+            s;
+          let tys = List.map (fun _ -> newvar ()) s in
+          let ty_src =
+            let lid = Ldot (Lident "SelectML", "src") in
+            let path, decl = Env.lookup_type ~loc:e.pexp_loc lid env in
+            assert (List.length decl.type_params = 1);
+            let ty = match tys with
+              | [ty] -> ty
+              | tys -> newty (Ttuple tys)
+            in
+            newconstr path [ty]
+          in
+          let exp =
+            Typecore.type_expect old_env e (Typecore.mk_expected ty_src) in
+          let plan =
+            { plan_loc = srcexpr.psrc_loc;
+              plan_desc = Tplan_source exp;
+              plan_cardinality = Many;
+              plan_patterns =
+                List.map (fun s -> Pat.var ~loc:srcexpr.psrc_loc s) s;
+            } in
+          (* accumulate value bindings *)
+          let vbs = List.map2
+            (fun v ty ->
+              let id = Ident.create_scoped ~scope v.txt in
+              let desc =
+                { val_type = ty; val_kind = Val_reg;
+                  val_attributes = []; val_loc = v.loc;
+                  val_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
+                } in
+              id, desc)
+            s tys in
+          plan, vbs
+      | Psrc_product (s1, s2) ->
+          let pl1, vbs1 = aux s1 in
+          let pl2, vbs2 = aux s2 in
+          let plan =
+            { plan_loc = srcexpr.psrc_loc;
+              plan_desc = Tplan_product (pl1, pl2);
+              plan_cardinality = Many;
+              plan_patterns = pl1.plan_patterns @ pl2.plan_patterns;
+            } in
+          plan, vbs1 @ vbs2
+      | Psrc_join (s1, s2, e) ->
+          let pl1, vbs1 = aux s1 in
+          let pl2, vbs2 = aux s2 in
+          let vbs = vbs1 @ vbs2 in
+          let joinenv = List.fold_left
+            (fun env (id, desc) -> Env.add_value id desc env) env vbs in
+          let exp = Typecore.type_expect joinenv e
+            (Typecore.mk_expected Predef.type_bool) in
+          let plan =
+            { plan_loc = srcexpr.psrc_loc;
+              plan_desc = Tplan_join (pl1, pl2, exp);
+              plan_cardinality = Many;
+              plan_patterns = pl1.plan_patterns @ pl2.plan_patterns;
+            } in
+          plan, vbs
+    in
+    aux se_from
+  in
+  (* handle FROM clause *)
+  let env = match se.se_from with
     | None -> env
     | Some se_from ->
-        let rec aux se_from =
-          match se_from.psrc_desc with
-          | Psrc_exp (e, s) ->
-              let tys = List.map (fun _ -> newvar ()) s in
-              let ty = match tys with
-                | [ty] -> ty
-                | tys -> newty (Ttuple tys)
-              in
-              let ty_src =
-                let lid = Longident.(Ldot (Lident "SelectML", "src")) in
-                let path, decl = Env.lookup_type ~loc:e.pexp_loc lid env in
-                assert (List.length decl.type_params = 1);
-                newconstr path [ty]
-              in
-              let exp = Typecore.type_expect env e
-                (Typecore.mk_expected ty_src) in
-              let plan =
-                { plan_loc = se_from.psrc_loc;
-                  plan_desc = Tplan_source exp;
-                  plan_env = env;
-                  plan_cardinality = Many;
-                  plan_patterns =
-                    List.map
-                      (fun s -> Ast_helper.Pat.var ~loc:se_from.psrc_loc s)
-                      s;
-                } in
-              plan, s, tys
-          | Psrc_join (s1, s2) ->
-              let pl1, names1, tys1 = aux s1 in
-              let pl2, names2, tys2 = aux s2 in
-              let names = names1 @ names2 in
-              let tys = tys1 @ tys2 in
-              let plan =
-                { plan_loc = se_from.psrc_loc;
-                  plan_desc = Tplan_product (pl1, pl2);
-                  plan_env = env;
-                  plan_cardinality = Many;
-                  plan_patterns = pl1.plan_patterns @ pl2.plan_patterns
-                } in
-              plan, names, tys
-        in
-        let plan, names, tys = aux se_from in
-        let rec check_dup = function
-        | [] -> ()
-        | s :: l ->
-            if List.exists (fun s' -> s.txt = s'.txt) l then
-              raise (Typecore.(Error (
-                s.loc, env, Multiply_bound_variable s.txt)))
-            else check_dup l
-        in
-        check_dup names;
+        let plan, vbs = handle_from se_from in
         child := plan;
-        let src_env = List.fold_left2
-          (fun env s ty ->
-            let id = Ident.create_scoped ~scope s.txt in
-            let desc =
-              { val_type = ty; val_kind = Val_reg;
-                val_attributes = [];
-                val_loc = s.loc;
-                val_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
-              }
-            in
-            Env.add_value id desc env)
-          env names tys in
-        src_env
+        List.fold_left
+          (fun env (id, desc) -> Env.add_value id desc env) env vbs
   in
 
   begin_se_scope scope;
   let scopes = se_scopes () in
 
-  (* handle WHERE *)
+  (* handle WHERE clause *)
   begin match se.se_where with
   | None -> ()
   | Some se_where ->
@@ -240,7 +249,6 @@ let build_plan ~loc env se =
       child :=
         { plan_loc = exp.exp_loc;
           plan_desc = Tplan_filter (!child, exp);
-          plan_env = env;
           plan_cardinality =
             (match !child.plan_cardinality with
             | Zero | One -> Zero | Many -> Many);
@@ -248,7 +256,7 @@ let build_plan ~loc env se =
         }
   end;
 
-  (* handle SELECT *)
+  (* handle SELECT clause *)
   let no_aggregate = ref true in
   let no_extra_project = ref true in
   let sel_exp =
@@ -346,7 +354,7 @@ let build_plan ~loc env se =
     rename exp
   in
 
-  (* handle aggregate applications *)
+  (* handle aggregation *)
   let sel_exp, hav_exp, ord_exps =
     if !no_aggregate then sel_exp, hav_exp, ord_exps else
 
@@ -390,7 +398,7 @@ let build_plan ~loc env se =
          | _, exps -> exps)
     in
 
-    (* handle GROUP BY *)
+    (* handle GROUP BY clause *)
     let grp_exp =
       Option.map
         (fun sexp ->
@@ -421,12 +429,11 @@ let build_plan ~loc env se =
     child :=
       { plan_loc = loc;
         plan_desc = Tplan_project (!child, !prj_list);
-        plan_env = env;
         plan_cardinality = !child.plan_cardinality;
         plan_patterns = !prj_pats;
       };
 
-    (* build an aggregate *)
+    (* build aggregation *)
     let module Ord = struct
       type t = Parsetree.expression option * Parsetree.expression
       let compare = Stdlib.compare
@@ -450,7 +457,6 @@ let build_plan ~loc env se =
           { plan_loc = loc;
             plan_desc =
               Tplan_aggregate_all (!child, !agg_funcs, !agg_list);
-            plan_env = env;
             plan_cardinality = One;
             plan_patterns = !agg_pats;
           }
@@ -460,7 +466,6 @@ let build_plan ~loc env se =
           { plan_loc;
             plan_desc =
               Tplan_aggregate (!child, grp_exp, !agg_funcs, !agg_list);
-            plan_env = env;
             plan_cardinality = !child.plan_cardinality;
             plan_patterns = !agg_pats;
           }
@@ -468,7 +473,7 @@ let build_plan ~loc env se =
     (sel_exp, hav_exp, ord_exps)
   in
 
-  (* handle HAVING and ORDER BY *)
+  (* handle HAVING and ORDER BY clauses *)
   let sel_exp =
     if !no_extra_project then sel_exp else
 
@@ -504,7 +509,6 @@ let build_plan ~loc env se =
     child :=
       { plan_loc = loc;
         plan_desc = Tplan_project (!child, !prj_list);
-        plan_env = env;
         plan_cardinality = !child.plan_cardinality;
         plan_patterns = !prj_pats;
       };
@@ -512,7 +516,6 @@ let build_plan ~loc env se =
       child :=
         { plan_loc = exp.exp_loc;
           plan_desc = Tplan_filter (!child, exp);
-          plan_env = env;
           plan_cardinality =
             (match !child.plan_cardinality with
             | Zero | One -> Zero | Many -> Many);
@@ -526,7 +529,6 @@ let build_plan ~loc env se =
           child :=
             { plan_loc = se.se_orderby_loc;
               plan_desc = Tplan_sort (!child, ord_exps, ord_dirs);
-              plan_env = env;
               plan_cardinality = !child.plan_cardinality;
               plan_patterns = !child.plan_patterns;
             }
@@ -537,7 +539,6 @@ let build_plan ~loc env se =
   child :=
     { plan_loc = sel_exp.exp_loc;
       plan_desc = Tplan_project (!child, [sel_exp]);
-      plan_env = env;
       plan_cardinality = !child.plan_cardinality;
       plan_patterns = [];
     };
@@ -545,7 +546,6 @@ let build_plan ~loc env se =
     child :=
       { plan_loc = se.se_distinct.loc;
         plan_desc = Tplan_unique !child;
-        plan_env = env;
         plan_cardinality = !child.plan_cardinality;
         plan_patterns = [];
       };
@@ -553,7 +553,7 @@ let build_plan ~loc env se =
   !child
 
 let type_aggregate env sfunct sarg =
-  let lid = Longident.(Ldot (Lident "Stdlib", "agg")) in
+  let lid = Ldot (Lident "Stdlib", "agg") in
   let path, decl = Env.lookup_type ~loc:sfunct.pexp_loc lid env in
   let vars = Ctype.instance_list decl.type_params in
   let ty_arg, ty_ret =
@@ -575,7 +575,7 @@ let transl env plan =
 
   let lident ?(loc=loc) txt =
     let strs = String.split_on_char '.' (String.trim txt) in
-    let lid = match Longident.unflatten strs with
+    let lid = match unflatten strs with
       | None -> failwith "transl"
       | Some lid -> lid
     in
@@ -625,13 +625,17 @@ let transl env plan =
   let (||>) a b = b $ a in
   let cmp = eid "Stdlib.compare" in
   let firstrow = eid "Stdlib.firstrow" in
-  let cagg = lident "Agg" in
+  let cagg = lident "Stdlib.Agg" in
+  let csome = lident "Stdlib.Option.Some" in
+  let cnone = lident "Stdlib.Option.None" in
 
   let input = eid "SelectML.input" in
   let output = eid "SelectML.output" in
   let one = eid "SelectML.one" in
   let singleton = eid "SelectML.singleton" in
   let product = eid "SelectML.product" in
+  let join = eid "SelectML.join" in
+  let join_eq = eid "SelectML.join_eq" in
   let map = eid "SelectML.map" in
   let filter = eid "SelectML.filter" in
   let sort = eid "SelectML.sort" in
@@ -693,9 +697,31 @@ let transl env plan =
         let pat1 = ptup pl1.plan_patterns in
         let pat2 = ptup pl2.plan_patterns in
         let exp = etup @@
-          List.map exp_of_pat (pl1.plan_patterns @ pl2.plan_patterns)
-        in
+          List.map exp_of_pat (pl1.plan_patterns @ pl2.plan_patterns) in
         product $ fun_ [pat1; pat2] exp $ aux pl1 $ aux pl2
+
+    | Tplan_join (pl1, pl2, e) ->
+        let pat1 = ptup pl1.plan_patterns in
+        let pat2 = ptup pl2.plan_patterns in
+        let exp = etup @@
+          List.map exp_of_pat (pl1.plan_patterns @ pl2.plan_patterns) in
+        let cond = untype_expression e in
+        join $ fun_ [pat1; pat2]
+          (Exp.ifthenelse cond
+            (Exp.construct csome (Some exp))
+            (Some (Exp.construct cnone None)))
+          $ aux pl1 $ aux pl2
+
+    | Tplan_join_eq (pl1, e1, pl2, e2) ->
+        let pat1 = ptup pl1.plan_patterns in
+        let pat2 = ptup pl2.plan_patterns in
+        let exp = etup @@
+          List.map exp_of_pat (pl1.plan_patterns @ pl2.plan_patterns) in
+        let key1 = untype_expression e1 in
+        let key2 = untype_expression e2 in
+        join_eq $ fun_ [pat1; pat2] exp
+          $ aux pl1 $ fun_ [pat1] key1
+          $ aux pl2 $ fun_ [pat2] key2
 
     | Tplan_project (pl, es) ->
         let pat = ptup pl.plan_patterns in

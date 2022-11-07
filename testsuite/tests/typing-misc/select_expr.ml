@@ -300,6 +300,10 @@ Error: Signature mismatch:
            val one : 'a t -> 'a
            val singleton : 'a -> 'a t
            val product : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+           val join : ('a -> 'b -> 'c option) -> 'a t -> 'b t -> 'c t
+           val join_eq :
+             ('a -> 'b -> 'c) ->
+             'a t -> ('a -> 'k) -> 'b t -> ('b -> 'k) -> 'c t
            val map : ('a -> 'b) -> 'a t -> 'b t
            val filter : ('a -> bool) -> 'a t -> 'a t
            val sort : ('a -> 'a -> int) -> 'a t -> 'a t
@@ -317,11 +321,12 @@ Error: Signature mismatch:
        is not compatible with the type
          ('a -> 'b) -> ('a, 'c) agg -> 'a t -> 'c t
        Type unit is not compatible with type 'c t = 'c list
-       File "stdlib.mli", line 1422, characters 2-56: Expected declaration
+       File "stdlib.mli", line 1425, characters 2-56: Expected declaration
 |}];;
 
 module SelectML = struct
-  include SelectML
+  include Query_list
+
   type 'a src = 'a array
   let input = Array.to_list
   let output = Array.of_list
@@ -334,6 +339,9 @@ module SelectML :
     val one : 'a t -> 'a
     val singleton : 'a -> 'a t
     val product : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+    val join : ('a -> 'b -> 'c option) -> 'a t -> 'b t -> 'c t
+    val join_eq :
+      ('a -> 'b -> 'c) -> 'a t -> ('a -> 'k) -> 'b t -> ('b -> 'k) -> 'c t
     val map : ('a -> 'b) -> 'a t -> 'b t
     val filter : ('a -> bool) -> 'a t -> 'a t
     val sort : ('a -> 'a -> int) -> 'a t -> 'a t
@@ -382,47 +390,7 @@ val t2 : (int, int) t array =
 |}];;
 
 module SelectML = struct
-  type 'a t = 'a array
-
-  let one t = t.(0)
-  let singleton x = [|x|]
-  let product f t1 t2 =
-    let n1 = Array.length t1 and n2 = Array.length t2 in
-    let len = n1 * n2 in
-    Array.init len (fun i -> f t1.(i / n2) t2.(i mod n2))
-
-  let map = Array.map
-  let filter f t =
-    let len = ref 0 in
-    let b = map (fun x -> if f x then (incr len; true) else false) t in
-    let j = ref 0 in
-    let next _ = while not (b.(!j)) do incr j done; incr j; t.(!j-1) in
-    Array.init !len next
-
-  let sort key t =
-    let t' = Array.copy t in
-    Array.stable_sort key t'; t'
-
-  let unique t =
-    let ht = Hashtbl.create (Array.length t) in
-    filter (fun x -> try Hashtbl.find ht x with
-      Not_found -> Hashtbl.add ht x false; true) t
-
-  let group_all f t =
-    let Agg (init, update, final) = f in
-    let acc = ref init in
-    for i = 0 to Array.length t - 1 do acc := update !acc t.(i) done;
-    final !acc
-
-  let group key f t =
-    let Agg (init, update, final) = f in
-    let ht = Hashtbl.create (Array.length t) in
-    for i = 0 to Array.length t - 1 do
-      let k = key t.(i) in
-      let acc = try Hashtbl.find ht k with Not_found -> init in
-      Hashtbl.replace ht k (update acc t.(i))
-    done;
-    Array.map final (Array.of_seq (Hashtbl.to_seq_values ht))
+  include Query_array
 
   type 'a src = 'a list
   let input = Array.of_list
@@ -433,15 +401,18 @@ end;;
 module SelectML :
   sig
     type 'a t = 'a array
-    val one : 'a array -> 'a
-    val singleton : 'a -> 'a array
-    val product : ('a -> 'b -> 'c) -> 'a array -> 'b array -> 'c array
-    val map : ('a -> 'b) -> 'a array -> 'b array
-    val filter : ('a -> bool) -> 'a array -> 'a array
-    val sort : ('a -> 'a -> int) -> 'a array -> 'a array
-    val unique : 'a array -> 'a array
-    val group_all : ('a, 'b) agg -> 'a array -> 'b
-    val group : ('a -> 'b) -> ('a, 'c) agg -> 'a array -> 'c array
+    val one : 'a t -> 'a
+    val singleton : 'a -> 'a t
+    val product : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+    val join : ('a -> 'b -> 'c option) -> 'a t -> 'b t -> 'c t
+    val join_eq :
+      ('a -> 'b -> 'c) -> 'a t -> ('a -> 'k) -> 'b t -> ('b -> 'k) -> 'c t
+    val map : ('a -> 'b) -> 'a t -> 'b t
+    val filter : ('a -> bool) -> 'a t -> 'a t
+    val sort : ('a -> 'a -> int) -> 'a t -> 'a t
+    val unique : 'a t -> 'a t
+    val group_all : ('a, 'b) agg -> 'a t -> 'b
+    val group : ('a -> 'c) -> ('a, 'b) agg -> 'a t -> 'b t
     type 'a src = 'a list
     val input : 'a list -> 'a array
     val output : 'a array -> 'a list

@@ -42,6 +42,7 @@ type token =
   | OR
   | OPTLABEL of (string)
   | OPEN
+  | ON_
   | OF
   | OBJECT
   | NONREC
@@ -72,6 +73,7 @@ type token =
   | LBRACE
   | LAZY
   | LABEL of (string)
+  | JOIN_
   | INT of (string * char option)
   | INITIALIZER
   | INHERIT

@@ -42,3 +42,23 @@ FROM t;;
 
 SELECT DISTINCT x, y;;
 SELECT DISTINCT x, y FROM t;;
+
+SELECT x, y FROM x <- [] JOIN y <- [] ON true;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON true, z;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON true, z <- [];;
+SELECT x, y FROM x <- [] JOIN y <- [] ON true,
+                 z <- [] JOIN w <- [] ON false;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON true
+                         JOIN z <- [] ON true;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON true
+                         JOIN z <- [] ON true
+                         JOIN w <- [] ON true;;
+SELECT x, y FROM w, x <- [] JOIN y <- [] ON true;;
+SELECT x, y FROM x <- [] JOIN w ON true, y <- [];;
+
+SELECT x, y FROM x <- [] JOIN y <- [] ON x = y;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON x = y, z;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON x, z, w;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON f x y;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON f x y, z;;
+SELECT x, y FROM x <- [] JOIN y <- [] ON (f x y), z;;

@@ -12,42 +12,22 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type 'a t = 'a list
+type 'a src = 'a array
+type 'a t = 'a array
 
-let one = function [x] -> x | _ -> assert false
-let singleton x = [x]
+val input : 'a src -> 'a t
+val output : 'a t -> 'a src
 
-let product f xs ys =
-  List.concat_map (fun x -> List.map (fun y -> f x y) ys) xs
+val one : 'a t -> 'a
+val singleton : 'a -> 'a t
+val product : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+val join : ('a -> 'b -> 'c option) -> 'a t -> 'b t -> 'c t
+val join_eq : ('a -> 'b -> 'c) ->
+  'a t -> ('a -> 'k) -> 'b t -> ('b -> 'k) -> 'c t
+val map : ('a -> 'b) -> 'a t -> 'b t
+val filter : ('a -> bool) -> 'a t -> 'a t
+val sort : ('a -> 'a -> int) -> 'a t -> 'a t
+val unique : 'a t -> 'a t
+val group_all : ('a, 'b) agg -> 'a t -> 'b
+val group : ('a -> 'c) -> ('a, 'b) agg -> 'a t -> 'b t
 
-let map = List.map
-
-let filter = List.filter
-
-let sort = List.stable_sort
-
-let unique l = List.sort_uniq compare l
-
-let group_all aggf l =
-  let Agg (init, update, final) = aggf in
-  final (List.fold_left update init l)
-
-let group key aggf l =
-  let cmp f a b = compare (f a) (f b) in
-  let Agg (init, update, final) = aggf in
-  l |> List.stable_sort (cmp key)
-    |> (function
-       | [] -> []
-       | hd :: tl ->
-          let _, l, acc = List.fold_left
-            (fun (prev, lst, acc) row ->
-              if prev = key row then (prev, lst, update acc row)
-              else (key row, final acc :: lst, update init row))
-            (key hd, [], update init hd)
-            tl
-          in final acc :: l)
-
-type 'a src = 'a list
-
-let input s = s
-let output s = s

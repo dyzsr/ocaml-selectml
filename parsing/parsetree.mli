@@ -447,7 +447,8 @@ and source_expr =
 
 and source_expr_desc =
   | Psrc_exp of expression * string loc list
-  | Psrc_join of source_expr * source_expr
+  | Psrc_product of source_expr * source_expr
+  | Psrc_join of source_expr * source_expr * expression
 
 and order_direction =
   | PAscending

@@ -470,6 +470,17 @@ and plan i ppf p =
       line i ppf "Tplan_product\n";
       plan i ppf p1;
       plan i ppf p2
+  | Tplan_join (p1, p2, e) ->
+      line i ppf "Tplan_join\n";
+      plan i ppf p1;
+      plan i ppf p2;
+      expression i ppf e
+  | Tplan_join_eq (p1, e1, p2, e2) ->
+      line i ppf "Tplan_join_eq\n";
+      plan i ppf p1;
+      expression i ppf e1;
+      plan i ppf p2;
+      expression i ppf e2
   | Tplan_filter (p, e) ->
       line i ppf "Tplan_filter\n";
       plan i ppf p;

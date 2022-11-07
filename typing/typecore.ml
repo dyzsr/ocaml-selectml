@@ -2375,6 +2375,11 @@ and is_nonexpansive_plan plan =
   | Tplan_null -> true
   | Tplan_source e -> is_nonexpansive e
   | Tplan_product (p1, p2) -> is_nonexpansive_plan p1 && is_nonexpansive_plan p2
+  | Tplan_join (p1, p2, e) ->
+      is_nonexpansive_plan p1 && is_nonexpansive_plan p2 && is_nonexpansive e
+  | Tplan_join_eq (p1, e1, p2, e2) ->
+      is_nonexpansive_plan p1 && is_nonexpansive e1 &&
+      is_nonexpansive_plan p2 && is_nonexpansive e2
   | Tplan_filter (p, e) -> is_nonexpansive_plan p && is_nonexpansive e
   | Tplan_project (p, es) ->
       is_nonexpansive_plan p && List.for_all is_nonexpansive es

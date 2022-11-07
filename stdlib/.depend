@@ -569,6 +569,26 @@ stdlib__Printf.cmx : printf.ml \
     stdlib__Printf.cmi
 stdlib__Printf.cmi : printf.mli \
     stdlib__Buffer.cmi
+stdlib__Query_array.cmo : query_array.ml \
+    stdlib__Seq.cmi \
+    stdlib__List.cmi \
+    stdlib__Hashtbl.cmi \
+    stdlib__Array.cmi \
+    stdlib__Query_array.cmi
+stdlib__Query_array.cmx : query_array.ml \
+    stdlib__Seq.cmx \
+    stdlib__List.cmx \
+    stdlib__Hashtbl.cmx \
+    stdlib__Array.cmx \
+    stdlib__Query_array.cmi
+stdlib__Query_array.cmi : query_array.mli
+stdlib__Query_list.cmo : query_list.ml \
+    stdlib__List.cmi \
+    stdlib__Query_list.cmi
+stdlib__Query_list.cmx : query_list.ml \
+    stdlib__List.cmx \
+    stdlib__Query_list.cmi
+stdlib__Query_list.cmi : query_list.mli
 stdlib__Queue.cmo : queue.ml \
     stdlib__Seq.cmi \
     stdlib__Queue.cmi
@@ -635,13 +655,6 @@ stdlib__Scanf.cmx : scanf.ml \
     stdlib__Scanf.cmi
 stdlib__Scanf.cmi : scanf.mli \
     stdlib.cmi
-stdlib__SelectML.cmo : selectML.ml \
-    stdlib__List.cmi \
-    stdlib__SelectML.cmi
-stdlib__SelectML.cmx : selectML.ml \
-    stdlib__List.cmx \
-    stdlib__SelectML.cmi
-stdlib__SelectML.cmi : selectML.mli
 stdlib__Seq.cmo : seq.ml \
     stdlib__Lazy.cmi \
     stdlib__Either.cmi \

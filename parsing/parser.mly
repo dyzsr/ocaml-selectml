@@ -771,6 +771,8 @@ let mk_directive ~loc name arg =
 %token HAVING_                "HAVING"
 %token ORDER_                 "ORDER"
 %token DISTINCT_              "DISTINCT"
+%token JOIN_                  "JOIN"
+%token ON_                    "ON"
 %token BY_                    "BY"
 %token ASC_                   "ASC"
 %token DESC_                  "DESC"
@@ -824,7 +826,7 @@ The precedences must be listed from low to high.
 %nonassoc below_COMMA
 %left     COMMA                         /* expr/expr_comma_list (e,e,e) */
 %nonassoc above_COMMA
-%nonassoc ASC_ DESC_ USING_
+%nonassoc JOIN_ ON_ ASC_ DESC_ USING_
 %right    MINUSGREATER                  /* function_type (t -> t -> t) */
 %right    OR BARBAR                     /* expr (e || e || e) */
 %right    AMPERSAND AMPERAMPER          /* expr (e && e && e) */
@@ -2403,7 +2405,9 @@ source_expr:
     RPAREN LESSMINUS expr %prec above_COMMA
       { Psrc_exp ($5, $2) }
   | source_expr COMMA source_expr
-      { Psrc_join ($1, $3) }
+      { Psrc_product ($1, $3) }
+  | source_expr JOIN_ source_expr ON_ expr
+      { Psrc_join ($1, $3, $5) }
   ) { $1 }
 ;
 order_expr:

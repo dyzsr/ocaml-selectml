@@ -444,10 +444,15 @@ and source_expr i ppf x =
       line i ppf "Psrc_exp\n";
       List.iter (fun s -> line (i+1) ppf "%a\n" fmt_string_loc s) s;
       expression i ppf e
-  | Psrc_join (s1, s2) ->
-      line i ppf "Psrc_join\n";
+  | Psrc_product (s1, s2) ->
+      line i ppf "Psrc_product\n";
       source_expr i ppf s1;
       source_expr i ppf s2
+  | Psrc_join (s1, s2, e) ->
+      line i ppf "Psrc_join\n";
+      source_expr i ppf s1;
+      source_expr i ppf s2;
+      expression i ppf e
 
 and value_description i ppf x =
   line i ppf "value_description %a %a\n" fmt_string_loc

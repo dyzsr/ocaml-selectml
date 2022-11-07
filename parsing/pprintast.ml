@@ -871,8 +871,11 @@ and source_expr ctxt f src =
       pp f "@[%a@ <- %a@]" string_loc s (simple_expr ctxt) e
   | Psrc_exp (e, s) ->
       pp f "@[(%a)@ <- %a@]" (list ~sep:"," string_loc) s (simple_expr ctxt) e
-  | Psrc_join (s1, s2) ->
+  | Psrc_product (s1, s2) ->
       pp f "%a,@ %a" (source_expr ctxt) s1 (source_expr ctxt) s2
+  | Psrc_join (s1, s2, e) ->
+      pp f "%a@ JOIN@ %a@ ON@ %a" (source_expr ctxt) s1
+        (source_expr ctxt) s2 (simple_expr ctxt) e
 
 and attributes ctxt f l =
   List.iter (attribute ctxt f) l

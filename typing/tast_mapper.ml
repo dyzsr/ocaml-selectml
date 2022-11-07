@@ -384,13 +384,21 @@ let expr sub x =
   {x with exp_extra; exp_desc; exp_env}
 
 let plan sub x =
-  let plan_env = sub.env sub x.plan_env in
   let plan_desc =
     match x.plan_desc with
     | Tplan_null -> Tplan_null
     | Tplan_source e -> Tplan_source (sub.expr sub e)
     | Tplan_product (pl1, pl2) ->
         Tplan_product (sub.plan sub pl1, sub.plan sub pl2)
+    | Tplan_join (pl1, pl2, e) ->
+        Tplan_join (sub.plan sub pl1, sub.plan sub pl2, sub.expr sub e)
+    | Tplan_join_eq (pl1, e1, pl2, e2) ->
+        Tplan_join_eq (
+          sub.plan sub pl1,
+          sub.expr sub e1,
+          sub.plan sub pl2,
+          sub.expr sub e2
+        )
     | Tplan_filter (pl, e) ->
         Tplan_filter (sub.plan sub pl, sub.expr sub e)
     | Tplan_project (pl, es) ->
@@ -416,7 +424,7 @@ let plan sub x =
         )
     | Tplan_unique pl -> Tplan_unique (sub.plan sub pl)
   in
-  {x with plan_desc; plan_env}
+  {x with plan_desc}
 
 let package_type sub x =
   let pack_fields = List.map (tuple2 id (sub.typ sub)) x.pack_fields in

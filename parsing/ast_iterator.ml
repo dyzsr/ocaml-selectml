@@ -442,8 +442,10 @@ module E = struct
     match desc with
     | Psrc_exp (e, s) ->
         sub.expr sub e; List.iter (iter_loc sub) s
-    | Psrc_join (s1, s2) ->
+    | Psrc_product (s1, s2) ->
         sub.srcexpr sub s1; sub.srcexpr sub s2
+    | Psrc_join (s1, s2, e) ->
+        sub.srcexpr sub s1; sub.srcexpr sub s2; sub.expr sub e
 
   let iter_binding_op sub {pbop_op; pbop_pat; pbop_exp; pbop_loc} =
     iter_loc sub pbop_op;

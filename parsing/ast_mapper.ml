@@ -488,8 +488,11 @@ module E = struct
     match desc with
     | Psrc_exp (e, s) ->
         Exp.mksrc ~loc (Psrc_exp (sub.expr sub e, List.map (map_loc sub) s))
-    | Psrc_join (s1, s2) ->
-        Exp.mksrc ~loc (Psrc_join (sub.srcexpr sub s1, sub.srcexpr sub s2))
+    | Psrc_product (s1, s2) ->
+        Exp.mksrc ~loc (Psrc_product (sub.srcexpr sub s1, sub.srcexpr sub s2))
+    | Psrc_join (s1, s2, e) ->
+        Exp.mksrc ~loc (Psrc_join
+          (sub.srcexpr sub s1, sub.srcexpr sub s2, sub.expr sub e))
 
   let map_binding_op sub {pbop_op; pbop_pat; pbop_exp; pbop_loc} =
     let open Exp in

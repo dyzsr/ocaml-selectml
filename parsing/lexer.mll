@@ -105,6 +105,8 @@ let keyword_table =
     "HAVING", HAVING_;
     "ORDER", ORDER_;
     "DISTINCT", DISTINCT_;
+    "JOIN", JOIN_;
+    "ON", ON_;
     "BY", BY_;
     "ASC", ASC_;
     "DESC", DESC_;
