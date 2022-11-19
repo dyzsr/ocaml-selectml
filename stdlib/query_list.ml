@@ -12,6 +12,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
+(* Computations *)
+
 type 'a t = 'a list
 
 let one = function [x] -> x | _ -> assert false
@@ -24,30 +26,13 @@ let join f xs ys =
   List.concat_map (fun x -> List.filter_map (fun y -> f x y) ys) xs
 
 let join_eq f xs key_x ys key_y =
-  let cmp (k1, _) (k2, _) = compare k1 k2 in
-  let xs = List.sort cmp (List.map (fun x -> key_x x, x) xs) in
-  let ys = List.sort cmp (List.map (fun y -> key_y y, y) ys) in
-  let group = function
-    | [] -> []
-    | hd :: tl ->
-      snd @@ List.fold_left
-        (fun (k1, acc) (k2, x) ->
-          let curr, rest = List.hd acc, List.tl acc in
-          if k1 = k2 then k1, (x :: curr) :: rest
-          else k2, [x] :: acc)
-        (fst hd, [[snd hd]]) tl
-  in
-  let rec merge acc xss yss =
-    match xss, yss with
-    | [], _ -> acc
-    | _, [] -> acc
-    | xs :: xss, ys :: yss ->
-        let acc = List.fold_left
-          (fun acc x -> List.fold_left (fun acc y -> f x y :: acc) acc ys)
-          acc xs in
-        merge acc xss yss
-  in
-  merge [] (group xs) (group ys)
+  let tbl = Hashtbl.create (List.length xs) in
+  List.iter (fun x -> Hashtbl.add tbl (key_x x) x) xs;
+  List.fold_left
+    (fun acc y ->
+      List.fold_left (fun acc x -> f x y :: acc)
+        acc (Hashtbl.find_all tbl (key_y y)))
+    [] ys
 
 let map = List.map
 
@@ -75,6 +60,8 @@ let group key aggf l =
             (key hd, [], update init hd)
             tl
           in final acc :: l)
+
+(* Input & Output *)
 
 type 'a src = 'a list
 

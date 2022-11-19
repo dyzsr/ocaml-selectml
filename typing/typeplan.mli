@@ -21,3 +21,7 @@ val type_select:
 val type_aggregate:
   Env.t -> Parsetree.expression -> Parsetree.expression ->
   Typedtree.expression * Typedtree.expression * Types.type_expr
+
+(* Query plan optimization *)
+
+val optimize : Typedtree.plan -> Typedtree.plan

@@ -584,9 +584,11 @@ stdlib__Query_array.cmx : query_array.ml \
 stdlib__Query_array.cmi : query_array.mli
 stdlib__Query_list.cmo : query_list.ml \
     stdlib__List.cmi \
+    stdlib__Hashtbl.cmi \
     stdlib__Query_list.cmi
 stdlib__Query_list.cmx : query_list.ml \
     stdlib__List.cmx \
+    stdlib__Hashtbl.cmx \
     stdlib__Query_list.cmi
 stdlib__Query_list.cmi : query_list.mli
 stdlib__Queue.cmo : queue.ml \

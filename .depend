@@ -1774,6 +1774,8 @@ typing/typeplan.cmo : \
     typing/typecore.cmi \
     typing/tast_mapper.cmi \
     typing/tast_iterator.cmi \
+    typing/primitive.cmi \
+    typing/predef.cmi \
     typing/path.cmi \
     parsing/parsetree.cmi \
     parsing/longident.cmi \
@@ -1792,6 +1794,8 @@ typing/typeplan.cmx : \
     typing/typecore.cmx \
     typing/tast_mapper.cmx \
     typing/tast_iterator.cmx \
+    typing/primitive.cmx \
+    typing/predef.cmx \
     typing/path.cmx \
     parsing/parsetree.cmi \
     parsing/longident.cmx \
@@ -3723,6 +3727,7 @@ lambda/translclass.cmi : \
     parsing/asttypes.cmi
 lambda/translcore.cmo : \
     typing/types.cmi \
+    typing/typeplan.cmi \
     typing/typeopt.cmi \
     typing/typedtree.cmi \
     typing/typecore.cmi \
@@ -3750,6 +3755,7 @@ lambda/translcore.cmo : \
     lambda/translcore.cmi
 lambda/translcore.cmx : \
     typing/types.cmx \
+    typing/typeplan.cmx \
     typing/typeopt.cmx \
     typing/typedtree.cmx \
     typing/typecore.cmx \

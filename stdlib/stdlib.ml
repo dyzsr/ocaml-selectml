@@ -627,7 +627,7 @@ module type SelectMLType = sig
   val sort : ('a -> 'a -> int) -> 'a t -> 'a t
   val unique : 'a t -> 'a t
   val group_all : ('a, 'b) agg -> 'a t -> 'b
-  val group : ('a -> 'c) -> ('a, 'b) agg -> 'a t -> 'b t
+  val group : ('a -> 'k) -> ('a, 'b) agg -> 'a t -> 'b t
 end
 
 (*MODULE_ALIASES*)

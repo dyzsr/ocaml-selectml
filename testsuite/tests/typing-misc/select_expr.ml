@@ -316,7 +316,7 @@ Error: Signature mismatch:
        Values do not match:
          val group : 'a -> 'b -> 'c -> unit
        is not included in
-         val group : ('a -> 'c) -> ('a, 'b) agg -> 'a t -> 'b t
+         val group : ('a -> 'k) -> ('a, 'b) agg -> 'a t -> 'b t
        The type ('a -> 'b) -> ('a, 'c) agg -> 'a t -> unit
        is not compatible with the type
          ('a -> 'b) -> ('a, 'c) agg -> 'a t -> 'c t
@@ -347,7 +347,7 @@ module SelectML :
     val sort : ('a -> 'a -> int) -> 'a t -> 'a t
     val unique : 'a t -> 'a t
     val group_all : ('a, 'b) agg -> 'a t -> 'b
-    val group : ('a -> 'c) -> ('a, 'b) agg -> 'a t -> 'b t
+    val group : ('a -> 'k) -> ('a, 'b) agg -> 'a t -> 'b t
     type 'a src = 'a array
     val input : 'a array -> 'a list
     val output : 'a list -> 'a array

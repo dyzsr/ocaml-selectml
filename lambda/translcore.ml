@@ -633,6 +633,7 @@ and transl_exp0 ~in_new_scope ~scopes e =
                !transl_module ~scopes Tcoerce_none None od.open_expr, body)
       end
   | Texp_plan (p, _, transl) ->
+      let p = Typeplan.optimize p in
       transl_exp ~scopes (transl p)
   | Texp_aggregate _ ->
       raise (Error (e.exp_loc, Standalone_aggregate))

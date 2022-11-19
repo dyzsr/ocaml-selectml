@@ -286,6 +286,8 @@ and expression_desc =
 and plan =
   { plan_desc : plan_desc;
     plan_loc : Location.t;
+    plan_env : Env.t;
+    plan_vars : unit Ident.tbl;
     plan_cardinality : cardinality;
     plan_patterns : Parsetree.pattern list;
   }

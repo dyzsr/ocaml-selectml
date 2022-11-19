@@ -150,6 +150,8 @@ let build_plan ~loc env se =
   let child =
     ref { plan_desc = Tplan_null;
           plan_loc = loc;
+          plan_env = env;
+          plan_vars = Ident.empty;
           plan_cardinality = One;
           plan_patterns =
             [Pat.construct ~loc
@@ -178,15 +180,6 @@ let build_plan ~loc env se =
             in
             newconstr path [ty]
           in
-          let exp =
-            Typecore.type_expect old_env e (Typecore.mk_expected ty_src) in
-          let plan =
-            { plan_loc = srcexpr.psrc_loc;
-              plan_desc = Tplan_source exp;
-              plan_cardinality = Many;
-              plan_patterns =
-                List.map (fun s -> Pat.var ~loc:srcexpr.psrc_loc s) s;
-            } in
           (* accumulate value bindings *)
           let vbs = List.map2
             (fun v ty ->
@@ -198,13 +191,35 @@ let build_plan ~loc env se =
                 } in
               id, desc)
             s tys in
+          let exp =
+            Typecore.type_expect old_env e (Typecore.mk_expected ty_src) in
+          let env = List.fold_left
+            (fun env (id, desc) -> Env.add_value id desc env) env vbs in
+          let vars = List.fold_left
+            (fun vars (id, _) -> Ident.add id () vars) Ident.empty vbs in
+          let plan =
+            { plan_loc = srcexpr.psrc_loc;
+              plan_desc = Tplan_source exp;
+              plan_env = env;
+              plan_vars = vars;
+              plan_cardinality = Many;
+              plan_patterns =
+                List.map (fun s -> Pat.var ~loc:srcexpr.psrc_loc s) s;
+            } in
           plan, vbs
       | Psrc_product (s1, s2) ->
           let pl1, vbs1 = aux s1 in
           let pl2, vbs2 = aux s2 in
+          let vbs = vbs1 @ vbs2 in
+          let env = List.fold_left
+            (fun env (id, desc) -> Env.add_value id desc env) env vbs in
+          let vars = List.fold_left
+            (fun vars (id, _) -> Ident.add id () vars) pl1.plan_vars vbs2 in
           let plan =
             { plan_loc = srcexpr.psrc_loc;
               plan_desc = Tplan_product (pl1, pl2);
+              plan_env = env;
+              plan_vars = vars;
               plan_cardinality = Many;
               plan_patterns = pl1.plan_patterns @ pl2.plan_patterns;
             } in
@@ -215,11 +230,15 @@ let build_plan ~loc env se =
           let vbs = vbs1 @ vbs2 in
           let joinenv = List.fold_left
             (fun env (id, desc) -> Env.add_value id desc env) env vbs in
+          let vars = List.fold_left
+            (fun vars (id, _) -> Ident.add id () vars) pl1.plan_vars vbs2 in
           let exp = Typecore.type_expect joinenv e
             (Typecore.mk_expected Predef.type_bool) in
           let plan =
             { plan_loc = srcexpr.psrc_loc;
               plan_desc = Tplan_join (pl1, pl2, exp);
+              plan_env = joinenv;
+              plan_vars = vars;
               plan_cardinality = Many;
               plan_patterns = pl1.plan_patterns @ pl2.plan_patterns;
             } in
@@ -249,6 +268,8 @@ let build_plan ~loc env se =
       child :=
         { plan_loc = exp.exp_loc;
           plan_desc = Tplan_filter (!child, exp);
+          plan_env = !child.plan_env;
+          plan_vars = !child.plan_vars;
           plan_cardinality =
             (match !child.plan_cardinality with
             | Zero | One -> Zero | Many -> Many);
@@ -429,6 +450,8 @@ let build_plan ~loc env se =
     child :=
       { plan_loc = loc;
         plan_desc = Tplan_project (!child, !prj_list);
+        plan_env = !child.plan_env;
+        plan_vars = !child.plan_vars;
         plan_cardinality = !child.plan_cardinality;
         plan_patterns = !prj_pats;
       };
@@ -457,6 +480,8 @@ let build_plan ~loc env se =
           { plan_loc = loc;
             plan_desc =
               Tplan_aggregate_all (!child, !agg_funcs, !agg_list);
+            plan_env = !child.plan_env;
+            plan_vars = !child.plan_vars;
             plan_cardinality = One;
             plan_patterns = !agg_pats;
           }
@@ -466,6 +491,8 @@ let build_plan ~loc env se =
           { plan_loc;
             plan_desc =
               Tplan_aggregate (!child, grp_exp, !agg_funcs, !agg_list);
+            plan_env = !child.plan_env;
+            plan_vars = !child.plan_vars;
             plan_cardinality = !child.plan_cardinality;
             plan_patterns = !agg_pats;
           }
@@ -509,6 +536,8 @@ let build_plan ~loc env se =
     child :=
       { plan_loc = loc;
         plan_desc = Tplan_project (!child, !prj_list);
+        plan_env = !child.plan_env;
+        plan_vars = !child.plan_vars;
         plan_cardinality = !child.plan_cardinality;
         plan_patterns = !prj_pats;
       };
@@ -516,6 +545,8 @@ let build_plan ~loc env se =
       child :=
         { plan_loc = exp.exp_loc;
           plan_desc = Tplan_filter (!child, exp);
+          plan_env = !child.plan_env;
+          plan_vars = !child.plan_vars;
           plan_cardinality =
             (match !child.plan_cardinality with
             | Zero | One -> Zero | Many -> Many);
@@ -529,6 +560,8 @@ let build_plan ~loc env se =
           child :=
             { plan_loc = se.se_orderby_loc;
               plan_desc = Tplan_sort (!child, ord_exps, ord_dirs);
+              plan_env = !child.plan_env;
+              plan_vars = !child.plan_vars;
               plan_cardinality = !child.plan_cardinality;
               plan_patterns = !child.plan_patterns;
             }
@@ -539,6 +572,8 @@ let build_plan ~loc env se =
   child :=
     { plan_loc = sel_exp.exp_loc;
       plan_desc = Tplan_project (!child, [sel_exp]);
+      plan_env = !child.plan_env;
+      plan_vars = !child.plan_vars;
       plan_cardinality = !child.plan_cardinality;
       plan_patterns = [];
     };
@@ -546,6 +581,8 @@ let build_plan ~loc env se =
     child :=
       { plan_loc = se.se_distinct.loc;
         plan_desc = Tplan_unique !child;
+        plan_env = !child.plan_env;
+        plan_vars = !child.plan_vars;
         plan_cardinality = !child.plan_cardinality;
         plan_patterns = [];
       };
@@ -804,3 +841,211 @@ let type_select ~loc env se ty_expected_explained =
 let () =
   Typecore.type_select := type_select;
   Typecore.type_aggregate := type_aggregate
+
+
+(* Query plan optimization *)
+
+let pushdown_predicates plan =
+  let open Either in
+  let is_and : Types.value_description -> bool = function
+    | { val_kind =
+          Val_prim { Primitive.prim_name = "%sequand";
+                      prim_arity = 2 } } ->
+          true
+    | _ -> false
+  in
+  let is_eq : Types.value_description -> bool = function
+    | { val_kind =
+          Val_prim { Primitive.prim_name = "%equal";
+                      prim_arity = 2 } } ->
+          true
+    | _ -> false
+  in
+  let is_related_to pl pred =
+    let result = ref false in
+    let super = Tast_iterator.default_iterator in
+    let expr self pred =
+      match pred.exp_desc with
+      | Texp_ident (Path.Pident id, _, _) ->
+          begin try
+            ignore (Ident.find_same id pl.plan_vars);
+            result := true;
+          with Not_found -> ()
+          end
+      | _ -> super.expr self pred
+    in
+    let iterator = { super with expr } in
+    iterator.expr iterator pred;
+    !result
+  in
+  let extract_related_preds pred pl =
+    let rec split_ands acc pred =
+      match pred.exp_desc with
+      | Texp_apply ({exp_desc = Texp_ident (_, _, vd)},
+                    [Nolabel, Some e1; Nolabel, Some e2])
+        when is_and vd ->
+          split_ands (split_ands acc e1) e2
+      | _ ->
+          pred :: acc
+    in
+    List.partition (is_related_to pl) (split_ands [] pred)
+  in
+  let extract_eq_keys pred pl1 pl2 =
+    match pred.exp_desc with
+    | Texp_apply ({exp_desc = Texp_ident (_, _, vd)},
+                  [Nolabel, Some e1; Nolabel, Some e2])
+      when is_eq vd ->
+        begin match
+          is_related_to pl1 e1, is_related_to pl2 e1,
+          is_related_to pl1 e2, is_related_to pl2 e2
+        with
+        | true, false, false, true ->
+            Left (Left (e1, e2))
+        | false, true, true, false ->
+            Left (Left (e2, e1))
+        | true, false, _, false | _, false, true, false ->
+            Right (Left pred)
+        | false, true, false, _ | false, _, false, true ->
+            Right (Right pred)
+        | _ ->
+            Left (Right pred)
+        end
+    | _ ->
+        begin match is_related_to pl1 pred, is_related_to pl2 pred with
+        | true, false ->
+            Right (Left pred)
+        | false, true ->
+            Right (Right pred)
+        | _ ->
+            Left (Right pred)
+        end
+  in
+  let rec aux plan related_preds =
+    let loc = plan.plan_loc in
+    let env = plan.plan_env in
+    let make_pred = function
+      | [] -> assert false
+      | hd :: tl ->
+          let lid = Ldot (Lident "Stdlib", "&&") in
+          let path, desc = Env.lookup_value ~loc lid env in
+          List.fold_left
+            (fun acc pred ->
+              { exp_desc = Texp_apply (
+                  { exp_desc = Texp_ident (path, mkloc lid loc, desc);
+                    exp_loc = loc;
+                    exp_type = desc.val_type;
+                    exp_env = env;
+                    exp_extra = [];
+                    exp_attributes = [];
+                  },
+                  [ Nolabel, Some acc;
+                    Nolabel, Some pred ]
+                );
+                exp_loc = loc;
+                exp_type = Predef.type_bool;
+                exp_env = env;
+                exp_extra = [];
+                exp_attributes = [];
+              })
+            hd tl
+    in
+    let make_key = function
+      | [] -> assert false
+      | key :: [] -> key
+      | keys ->
+          { exp_desc = Texp_tuple keys;
+            exp_loc = loc;
+            exp_type = newty (Ttuple (List.map (fun e -> e.exp_type) keys));
+            exp_env = env;
+            exp_extra = [];
+            exp_attributes = [];
+          }
+    in
+    match plan.plan_desc with
+    | Tplan_filter (pl, pred) ->
+        let related, unrelated = extract_related_preds pred pl in
+        let pl, unrelated_preds = aux pl (related @ related_preds) in
+        begin match unrelated @ unrelated_preds with
+        | [] -> pl
+        | preds ->
+            { plan with plan_desc = Tplan_filter (pl, make_pred preds) }
+        end, []
+    | Tplan_source _ ->
+        begin match related_preds with
+        | [] -> plan
+        | preds ->
+            { plan with plan_desc = Tplan_filter (plan, make_pred preds) }
+        end, []
+    | Tplan_product (pl1, pl2) ->
+        let keys1, keys2, general_preds, pl1_preds, pl2_preds =
+          List.fold_left
+            (fun (keys1, keys2, general_preds, pl1_preds, pl2_preds) pred ->
+              match extract_eq_keys pred pl1 pl2 with
+              | Left (Left (key1, key2)) ->
+                  key1 :: keys1, key2 :: keys2,
+                  general_preds, pl1_preds, pl2_preds
+              | Left (Right pred) ->
+                  keys1, keys2, pred :: general_preds, pl1_preds, pl2_preds
+              | Right (Left pred) ->
+                  keys1, keys2, general_preds, pred :: pl1_preds, pl2_preds
+              | Right (Right pred) ->
+                  keys1, keys2, general_preds, pl1_preds, pred :: pl2_preds)
+            ([], [], [], [], [])
+            related_preds
+        in
+        begin match keys1, keys2, general_preds with
+        | [], [], [] -> plan
+        | [], [], join_preds ->
+            { plan with plan_desc =
+                Tplan_join (
+                  fst (aux pl1 pl1_preds),
+                  fst (aux pl2 pl2_preds),
+                  make_pred join_preds)
+            }
+        | (_ :: _), (_ :: _), [] ->
+            { plan with plan_desc =
+                Tplan_join_eq (
+                  fst (aux pl1 pl1_preds), make_key keys1,
+                  fst (aux pl2 pl2_preds), make_key keys2)
+            }
+        | (_ :: _), (_ :: _), preds ->
+            { plan with plan_desc =
+                Tplan_filter (
+                  { plan with plan_desc =
+                      Tplan_join_eq (
+                        fst (aux pl1 pl1_preds), make_key keys1,
+                        fst (aux pl2 pl2_preds), make_key keys2)
+                  },
+                  make_pred preds)
+            }
+        | _, _, _ -> assert false
+        end, []
+    | Tplan_join (pl1, pl2, pred) ->
+        aux { plan with plan_desc =
+                Tplan_filter (
+                  { plan with plan_desc = Tplan_product (pl1, pl2) },
+                  pred)
+            }
+          related_preds
+    | Tplan_project (pl, es) ->
+        {plan with plan_desc = Tplan_project (fst (aux pl []), es)},
+        related_preds
+    | Tplan_sort (pl, es, os) ->
+        {plan with plan_desc = Tplan_sort (fst (aux pl []), es, os)},
+        related_preds
+    | Tplan_aggregate_all (pl, fs, es) ->
+        {plan with plan_desc = Tplan_aggregate_all (fst (aux pl []), fs, es)},
+        related_preds
+    | Tplan_aggregate (pl, e, fs, es) ->
+        {plan with plan_desc = Tplan_aggregate (fst (aux pl []), e, fs, es)},
+        related_preds
+    | Tplan_unique pl ->
+        {plan with plan_desc = Tplan_unique (fst (aux pl []))},
+        related_preds
+    | _ ->
+        plan, related_preds
+  in
+  fst (aux plan [])
+
+let optimize pl = pushdown_predicates pl
+
