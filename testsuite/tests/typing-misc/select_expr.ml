@@ -44,6 +44,145 @@ SELECT 1 WHERE false;;
 - : int SelectML.src = []
 |}];;
 
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE x = y ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE x * x = y * y ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE x = 2 && y <= 3 ORDER BY y;;
+
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE x >= 2 && y <= 3 ORDER BY x, y;;
+
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE x = y && x >= 2 && y <= 3 ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE x = y && x >= 2 && y <= 3 && x - y = 0 ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE x + 1 = y && x >= 2 && y <= 3 ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE y = x ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3], y <- [2;3;4]
+WHERE y - 1 = x ORDER BY x;;
+
+[%%expect {|
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 2); (2, 3)]
+- : (int * int) SelectML.src = [(2, 2); (2, 3); (3, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 3)]
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(1, 2); (2, 3); (3, 4)]
+|}];;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON x = y ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON x * x = y * y ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON x = 2 && y <= 3 ORDER BY y;;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON x >= 2 && y <= 3 ORDER BY x, y;;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON x = y && x >= 2 && y <= 3 ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON x = y && x >= 2 && y <= 3 && x - y = 0 ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON x + 1 = y && x >= 2 && y <= 3 ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON y = x ORDER BY x;;
+
+SELECT x, y FROM x <- [1;2;3] JOIN y <- [2;3;4]
+ON y - 1 = x ORDER BY x;;
+
+[%%expect {|
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 2); (2, 3)]
+- : (int * int) SelectML.src = [(2, 2); (2, 3); (3, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(2, 3)]
+- : (int * int) SelectML.src = [(2, 2); (3, 3)]
+- : (int * int) SelectML.src = [(1, 2); (2, 3); (3, 4)]
+|}];;
+
+SELECT x, y, z FROM x <- [1;2;3]
+               JOIN y <- [2;3;4] ON x = y
+               JOIN z <- [3;4;5] ON x = z
+ORDER BY x, y, z;;
+
+SELECT x, y, z FROM x <- [1;2;3]
+               JOIN y <- [2;3;4] ON x * x = y * y
+               JOIN z <- [3;4;5] ON y = z
+ORDER BY x, y, z;;
+
+SELECT x, y, z FROM x <- [1;2;3]
+               JOIN y <- [2;3;4] ON x = 2,
+                    z <- [3;4;5]
+WHERE y <= 3 && x = z
+ORDER BY x, y, z;;
+
+SELECT x, y, z FROM x <- [1;2;3]
+               JOIN y <- [2;3;4] ON x >= 2 && y <= 3,
+                    z <- [0;1;2]
+WHERE x = z
+ORDER BY x, y, z;;
+
+SELECT x, y, z FROM x <- [1;2;3],
+                    y <- [2;3;4]
+               JOIN z <- [0;1;2] ON y = z && y <= 3
+WHERE x = y && x >= 2
+ORDER BY x, y, z;;
+
+SELECT x, y, z FROM x <- [1;2;3],
+                    y <- [2;3;4]
+               JOIN z <- [0;1;2] ON y = z
+WHERE x >= 2 && y <= 3 && x - y = 0
+ORDER BY x, y, z;;
+
+SELECT x, y, z FROM x <- [1;2;3]
+               JOIN y <- [2;3;4] ON x + 1 = y && x >= 2 && y <= 3
+               JOIN z <- [1;2;3] ON z > 1
+ORDER BY x, y, z;;
+
+SELECT x, y, z FROM x <- [1;2;3]
+               JOIN y <- [2;3;4] ON y = x
+               JOIN z <- [0;1;2] ON z = y
+ORDER BY x, y, z;;
+
+SELECT x, y, z FROM x <- [1;2;3]
+               JOIN y <- [2;3;4] ON y - 1 = x
+               JOIN z <- [0;1;2] ON z - 1 = x
+ORDER BY x, y, z;;
+
+[%%expect {|
+- : (int * int * int) SelectML.src = [(3, 3, 3)]
+- : (int * int * int) SelectML.src = [(3, 3, 3)]
+- : (int * int * int) SelectML.src = []
+- : (int * int * int) SelectML.src = [(2, 2, 2); (2, 3, 2)]
+- : (int * int * int) SelectML.src = [(2, 2, 2)]
+- : (int * int * int) SelectML.src = [(2, 2, 2)]
+- : (int * int * int) SelectML.src = [(2, 3, 2); (2, 3, 3)]
+- : (int * int * int) SelectML.src = [(2, 2, 2)]
+- : (int * int * int) SelectML.src = [(1, 2, 2)]
+|}];;
+
 SELECT x, y FROM x <- [1;2;3], y <- [4;5;6] ORDER BY x, y DESC;;
 SELECT x, y FROM x <- [1;2;3], y <- [4;5;6] ORDER BY x DESC, y;;
 SELECT x, y FROM x <- [1;2;3], y <- [4;5;6] ORDER BY x ASC, y DESC;;
@@ -457,4 +596,85 @@ module M :
     sig
       val f : 'a SelectML.src -> 'a SelectML.src -> ('a * 'a) SelectML.src
     end
+|}];;
+
+module SelectML = Query_array;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE x = y ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE x * x = y * y ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE x = 2 && y <= 3 ORDER BY y;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE x >= 2 && y <= 3 ORDER BY x, y;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE x = y && x >= 2 && y <= 3 ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE x = y && x >= 2 && y <= 3 && x - y = 0 ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE x + 1 = y && x >= 2 && y <= 3 ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE y = x ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|], y <- [|2;3;4|]
+WHERE y - 1 = x ORDER BY x;;
+
+[%%expect {|
+module SelectML = Query_array
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (2, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (2, 3); (3, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(1, 2); (2, 3); (3, 4)|]
+|}];;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON x = y ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON x * x = y * y ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON x = 2 && y <= 3 ORDER BY y;;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON x >= 2 && y <= 3 ORDER BY x, y;;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON x = y && x >= 2 && y <= 3 ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON x = y && x >= 2 && y <= 3 && x - y = 0 ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON x + 1 = y && x >= 2 && y <= 3 ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON y = x ORDER BY x;;
+
+SELECT x, y FROM x <- [|1;2;3|] JOIN y <- [|2;3;4|]
+ON y - 1 = x ORDER BY x;;
+
+[%%expect {|
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (2, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (2, 3); (3, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(2, 3)|]
+- : (int * int) SelectML.src = [|(2, 2); (3, 3)|]
+- : (int * int) SelectML.src = [|(1, 2); (2, 3); (3, 4)|]
 |}];;

@@ -994,7 +994,12 @@ let pushdown_predicates plan =
             related_preds
         in
         begin match keys1, keys2, general_preds with
-        | [], [], [] -> plan
+        | [], [], [] ->
+            { plan with plan_desc =
+                Tplan_product (
+                  fst (aux pl1 pl1_preds),
+                  fst (aux pl2 pl2_preds))
+            }
         | [], [], join_preds ->
             { plan with plan_desc =
                 Tplan_join (
@@ -1048,4 +1053,3 @@ let pushdown_predicates plan =
   fst (aux plan [])
 
 let optimize pl = pushdown_predicates pl
-
