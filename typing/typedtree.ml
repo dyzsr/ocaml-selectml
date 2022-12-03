@@ -166,7 +166,7 @@ and plan_desc =
   | Tplan_source of expression
   | Tplan_product of plan * plan
   | Tplan_join of plan * plan * expression
-  | Tplan_join_eq of plan * expression * plan * expression
+  | Tplan_equijoin of plan * expression * plan * expression
   | Tplan_filter of plan * expression
   | Tplan_project of plan * expression list
   | Tplan_sort of plan * expression list * order_direction list

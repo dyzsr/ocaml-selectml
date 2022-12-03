@@ -620,7 +620,7 @@ module type SelectMLType = sig
   val singleton : 'a -> 'a t
   val product : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val join : ('a -> 'b -> 'c option) -> 'a t -> 'b t -> 'c t
-  val join_eq : ('a -> 'b -> 'c) ->
+  val equijoin : ('a -> 'b -> 'c) ->
     'a t -> ('a -> 'k) -> 'b t -> ('b -> 'k) -> 'c t
   val map : ('a -> 'b) -> 'a t -> 'b t
   val filter : ('a -> bool) -> 'a t -> 'a t

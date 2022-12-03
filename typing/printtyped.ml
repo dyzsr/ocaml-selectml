@@ -475,8 +475,8 @@ and plan i ppf p =
       plan i ppf p1;
       plan i ppf p2;
       expression i ppf e
-  | Tplan_join_eq (p1, e1, p2, e2) ->
-      line i ppf "Tplan_join_eq\n";
+  | Tplan_equijoin (p1, e1, p2, e2) ->
+      line i ppf "Tplan_equijoin\n";
       plan i ppf p1;
       expression i ppf e1;
       plan i ppf p2;

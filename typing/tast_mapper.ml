@@ -392,8 +392,8 @@ let plan sub x =
         Tplan_product (sub.plan sub pl1, sub.plan sub pl2)
     | Tplan_join (pl1, pl2, e) ->
         Tplan_join (sub.plan sub pl1, sub.plan sub pl2, sub.expr sub e)
-    | Tplan_join_eq (pl1, e1, pl2, e2) ->
-        Tplan_join_eq (
+    | Tplan_equijoin (pl1, e1, pl2, e2) ->
+        Tplan_equijoin (
           sub.plan sub pl1,
           sub.expr sub e1,
           sub.plan sub pl2,

@@ -25,7 +25,7 @@ let product f xs ys =
 let join f xs ys =
   List.concat_map (fun x -> List.filter_map (fun y -> f x y) ys) xs
 
-let join_eq f xs key_x ys key_y =
+let equijoin f xs key_x ys key_y =
   let tbl = Hashtbl.create (List.length xs) in
   List.iter (fun x -> Hashtbl.add tbl (key_x x) x) xs;
   List.fold_left

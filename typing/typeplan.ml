@@ -672,7 +672,7 @@ let transl env plan =
   let singleton = eid "SelectML.singleton" in
   let product = eid "SelectML.product" in
   let join = eid "SelectML.join" in
-  let join_eq = eid "SelectML.join_eq" in
+  let equijoin = eid "SelectML.equijoin" in
   let map = eid "SelectML.map" in
   let filter = eid "SelectML.filter" in
   let sort = eid "SelectML.sort" in
@@ -749,14 +749,14 @@ let transl env plan =
             (Some (Exp.construct cnone None)))
           $ aux pl1 $ aux pl2
 
-    | Tplan_join_eq (pl1, e1, pl2, e2) ->
+    | Tplan_equijoin (pl1, e1, pl2, e2) ->
         let pat1 = ptup pl1.plan_patterns in
         let pat2 = ptup pl2.plan_patterns in
         let exp = etup @@
           List.map exp_of_pat (pl1.plan_patterns @ pl2.plan_patterns) in
         let key1 = untype_expression e1 in
         let key2 = untype_expression e2 in
-        join_eq $ fun_ [pat1; pat2] exp
+        equijoin $ fun_ [pat1; pat2] exp
           $ aux pl1 $ fun_ [pat1] key1
           $ aux pl2 $ fun_ [pat2] key2
 
@@ -1009,7 +1009,7 @@ let pushdown_predicates plan =
             }
         | (_ :: _), (_ :: _), [] ->
             { plan with plan_desc =
-                Tplan_join_eq (
+                Tplan_equijoin (
                   fst (aux pl1 pl1_preds), make_key keys1,
                   fst (aux pl2 pl2_preds), make_key keys2)
             }
@@ -1017,7 +1017,7 @@ let pushdown_predicates plan =
             { plan with plan_desc =
                 Tplan_filter (
                   { plan with plan_desc =
-                      Tplan_join_eq (
+                      Tplan_equijoin (
                         fst (aux pl1 pl1_preds), make_key keys1,
                         fst (aux pl2 pl2_preds), make_key keys2)
                   },

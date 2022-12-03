@@ -28,7 +28,7 @@ let join f t1 t2 =
   let s2 = Array.to_seq t2 in
   Array.of_seq (Seq.filter_map (fun (a, b) -> f a b) (Seq.product s1 s2))
 
-let join_eq f t1 k1 t2 k2 =
+let equijoin f t1 k1 t2 k2 =
   let n1 = Array.length t1 in
   let tbl = Hashtbl.create n1 in
   for i = 0 to n1-1 do

@@ -275,7 +275,7 @@ let plan sub {plan_desc; _} =
       sub.plan sub pl1; sub.plan sub pl2
   | Tplan_join (pl1, pl2, e) ->
       sub.plan sub pl1; sub.plan sub pl2; sub.expr sub e
-  | Tplan_join_eq (pl1, e1, pl2, e2) ->
+  | Tplan_equijoin (pl1, e1, pl2, e2) ->
       sub.plan sub pl1; sub.expr sub e1;
       sub.plan sub pl2; sub.expr sub e2
   | Tplan_filter (pl, e) ->
